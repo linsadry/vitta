@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Fitness OS">
+  <meta name="theme-color" content="#F4F1EC">
+  <title>Fitness OS</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+  <div class="phone" id="app">
+
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+      <span class="st-time" id="stTime">9:41</span>
+      <div class="st-notch"></div>
+      <div class="st-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="5" width="3" height="7" rx="0.5" fill="#2C2B28"/><rect x="4.5" y="3" width="3" height="9" rx="0.5" fill="#2C2B28"/><rect x="9" y="1" width="3" height="11" rx="0.5" fill="#2C2B28"/><rect x="13.5" y="0" width="3" height="12" rx="0.5" fill="#2C2B28"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 9a1 1 0 100 2 1 1 0 000-2z" fill="#2C2B28"/><path d="M5 7.2C5.9 6.5 6.9 6 8 6s2.1.5 3 1.2" stroke="#2C2B28" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M2.5 4.8C4.1 3.4 5.95 2.5 8 2.5s3.9.9 5.5 2.3" stroke="#2C2B28" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke="#2C2B28" stroke-width="1"/><rect x="2" y="2" width="19" height="9" rx="2" fill="#2C2B28"/><path d="M25 4.5v4" stroke="#2C2B28" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <!-- SCROLL AREA -->
+    <div class="scroll" id="scrollEl">
+
+      <!-- SCREEN: DASHBOARD -->
+      <div class="screen on" id="s-dash" data-screen="dash">
+        <p class="date-line" id="dateLine"></p>
+        <h1 class="screen-title" id="greetLine">Bom dia, Adriana</h1>
+
+        <div id="scoreHero" class="score-hero"></div>
+        <div id="habitsCard" class="card"></div>
+        <div id="statsGrid" class="g2"></div>
+        <div id="nutriSummary" class="card"></div>
+        <div id="weekWorkouts" class="card"></div>
+      </div>
+
+      <!-- SCREEN: HIDRATAÇÃO -->
+      <div class="screen" id="s-hydro" data-screen="hydro">
+        <h1 class="screen-title">Hidratação</h1>
+        <p class="screen-sub">Meta diária: <span id="waterGoalLabel">2.5L</span></p>
+        <div id="hydroContent"></div>
+      </div>
+
+      <!-- SCREEN: NUTRIÇÃO -->
+      <div class="screen" id="s-nutri" data-screen="nutri">
+        <h1 class="screen-title">Alimentação</h1>
+        <p class="screen-sub" id="nutriDate"></p>
+        <div id="nutriContent"></div>
+      </div>
+
+      <!-- SCREEN: TREINOS -->
+      <div class="screen" id="s-work" data-screen="work">
+        <h1 class="screen-title">Treinos</h1>
+        <p class="screen-sub" id="workSub"></p>
+        <div id="workContent"></div>
+      </div>
+
+      <!-- SCREEN: PROGRESSO -->
+      <div class="screen" id="s-prog" data-screen="prog">
+        <h1 class="screen-title">Progresso</h1>
+        <p class="screen-sub">Evolução mensal</p>
+        <div id="progContent"></div>
+      </div>
+
+      <!-- SCREEN: IA -->
+      <div class="screen screen-ai" id="s-ai" data-screen="ai">
+        <div class="ai-hdr">
+          <h1 class="screen-title">Assistente</h1>
+          <p class="screen-sub" style="margin-bottom:0">✦ Dados 100% locais · Privacidade total</p>
+        </div>
+        <div class="ai-sugg" id="suggBox"></div>
+        <div class="msgs" id="msgArea"></div>
+        <div class="ai-inp-wrap">
+          <input class="ai-inp" id="aiInp" placeholder="Pergunte sobre seus dados..." autocomplete="off">
+          <button class="ai-send-btn" id="aiSendBtn" aria-label="Enviar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /scroll -->
+
+    <!-- FAB -->
+    <button class="fab" id="fabBtn" aria-label="Adicionar registro">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+
+    <!-- BOTTOM NAV -->
+    <nav class="nav" id="bottomNav">
+      <button class="ni active" data-nav="dash" aria-label="Início">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="ni-lbl">Início</span>
+      </button>
+      <button class="ni" data-nav="nutri" aria-label="Nutrição">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v4a1 1 0 001 1h8a1 1 0 001-1V3M12 8v13M5 21h14"/></svg>
+        <span class="ni-lbl">Nutrição</span>
+      </button>
+      <button class="ni" data-nav="work" aria-label="Treino">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="4" height="10" rx="1"/><rect x="19" y="7" width="4" height="10" rx="1"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="5" y1="14" x2="19" y2="14"/></svg>
+        <span class="ni-lbl">Treino</span>
+      </button>
+      <button class="ni" data-nav="prog" aria-label="Progresso">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="ni-lbl">Progresso</span>
+      </button>
+      <button class="ni" data-nav="ai" aria-label="Assistente IA">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="ni-lbl">IA</span>
+      </button>
+    </nav>
+
+  </div><!-- /phone -->
+
+  <!-- SCRIPTS (ordem importa) -->
+  <script src="js/storage.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/screens/dashboard.js"></script>
+  <script src="js/screens/hydration.js"></script>
+  <script src="js/screens/nutrition.js"></script>
+  <script src="js/screens/workout.js"></script>
+  <script src="js/screens/progress.js"></script>
+  <script src="js/screens/ai.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/sw-register.js"></script>
+</body>
+</html>
