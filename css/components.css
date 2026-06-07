@@ -635,3 +635,31 @@ body {
   animation: spin 1s linear infinite;
   margin: 0 auto 12px;
 }
+/* ── FORM INPUTS ─────────────────────────────────────────────── */
+.form-input {
+  width: 100%;
+  background: var(--bg-card-alt);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.form-input:focus {
+  border-color: var(--color-olive);
+}
+
+.form-input::placeholder {
+  color: var(--color-offmobile);
+}
+
+/* Remove number input spinners */
+.form-input[type=number]::-webkit-inner-spin-button,
+.form-input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
