@@ -1,0 +1,47 @@
+/* ── SCREENS ─────────────────────────────────────────────────── */
+.screen {
+  display: none;
+  padding: 20px 16px var(--nav-height);
+}
+
+.screen.on { display: block; }
+
+/* AI screen overrides */
+#s-ai       { padding: 0; }
+#s-ai.on    { display: flex; }
+
+/* ── BAR CHART ───────────────────────────────────────────────── */
+.barchart {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.bcol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.bfill {
+  width: 100%;
+  border-radius: 3px;
+  min-height: 3px;
+  transition: height 0.5s ease;
+}
+
+.blbl { font-size: 9px; color: var(--color-inkfaint); }
+
+/* ── HYDRATION LARGE RING ────────────────────────────────────── */
+.water-center {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* ── WORKOUT TABS CONTENT ────────────────────────────────────── */
+.tab-content { display: none; }
+.tab-content.on { display: block; }

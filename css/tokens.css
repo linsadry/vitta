@@ -1,0 +1,45 @@
+/* ── DESIGN TOKENS ──────────────────────────────────────────── */
+:root {
+  /* Japandi Palette */
+  --color-soft:       #C9845A;
+  --color-terracot:   #D4956E;
+  --color-olive:      #7A836A;
+  --color-sage:       #A5AA94;
+  --color-sandy:      #E8E0D0;
+  --color-smokey:     #8D9298;
+  --color-offmobile:  #C8C5BC;
+  --color-offwhite:   #F4F1EC;
+  --color-white:      #FFFFFF;
+  --color-ink:        #2C2B28;
+  --color-inklight:   #4A4844;
+  --color-inkfaint:   #7A7570;
+
+  /* Semantic */
+  --bg-app:           #2C2B28;
+  --bg-screen:        #F4F1EC;
+  --bg-card:          #FFFFFF;
+  --bg-card-alt:      #FAF8F4;
+  --border-subtle:    #E8E0D0;
+
+  /* Typography */
+  --font-display:     'Playfair Display', Georgia, serif;
+  --font-body:        'DM Sans', system-ui, sans-serif;
+
+  /* Spacing */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   12px;
+  --space-lg:   16px;
+  --space-xl:   20px;
+  --space-2xl:  24px;
+
+  /* Radius */
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-pill: 50px;
+
+  /* Nav height (for padding-bottom) */
+  --nav-height: 82px;
+}
