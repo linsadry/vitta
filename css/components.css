@@ -663,3 +663,25 @@ body {
 .form-input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
+/* ── BACK HEADER ─────────────────────────────────────────────── */
+.screen-back-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-inklight);
+  flex-shrink: 0;
+}
+
+.back-btn:active { background: var(--color-sandy); }
