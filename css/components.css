@@ -1,0 +1,691 @@
+/* ── BASE ────────────────────────────────────────────────────── */
+body {
+  font-family: var(--font-body);
+  background: var(--bg-app);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* ── PHONE SHELL ─────────────────────────────────────────────── */
+.phone {
+  width: 390px;
+  height: 844px;
+  background: var(--bg-screen);
+  border-radius: 50px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow:
+    0 40px 80px rgba(0,0,0,0.5),
+    inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+/* ── STATUS BAR ──────────────────────────────────────────────── */
+.statusbar {
+  background: var(--bg-card);
+  padding: 14px 28px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.st-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.st-notch {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 6px;
+  width: 120px;
+  height: 34px;
+  background: var(--color-ink);
+  border-radius: 20px;
+}
+
+.st-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── SCROLL AREA ─────────────────────────────────────────────── */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg-screen);
+}
+
+.scroll::-webkit-scrollbar { display: none; }
+
+/* ── CARDS ───────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.card-alt {
+  background: var(--bg-card-alt);
+  border-radius: var(--r-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+/* ── TYPOGRAPHY ──────────────────────────────────────────────── */
+.screen-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.2;
+  margin-bottom: var(--space-xs);
+}
+
+.screen-sub {
+  font-size: 13px;
+  color: var(--color-inkfaint);
+  margin-bottom: var(--space-xl);
+}
+
+.date-line {
+  font-size: 12px;
+  color: var(--color-inkfaint);
+  margin-bottom: 2px;
+}
+
+.caps {
+  font-size: 10px;
+  color: var(--color-inkfaint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-md);
+}
+
+/* ── SCORE HERO ──────────────────────────────────────────────── */
+.score-hero {
+  border-radius: var(--r-xl);
+  padding: 20px 20px 20px 22px;
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-olive);
+  position: relative;
+  overflow: hidden;
+}
+
+.score-hero::before {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+}
+
+.score-hero-lbl  { color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 5px; }
+.score-hero-num  { font-family: var(--font-display); font-size: 52px; font-weight: 700; color: #fff; line-height: 1; }
+.score-hero-unit { font-size: 18px; color: rgba(255,255,255,0.55); }
+.score-hero-foot { color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 6px; }
+
+.score-ring-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.score-ring-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ── HABIT DOTS ──────────────────────────────────────────────── */
+.habits {
+  display: flex;
+  justify-content: space-around;
+  padding: 2px 0;
+}
+
+.hitem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.hdot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s;
+}
+
+.hdot-on  { background: var(--color-olive); }
+.hdot-off { background: var(--color-sandy); }
+
+.hlbl {
+  font-size: 10px;
+  color: var(--color-inkfaint);
+  font-weight: 500;
+}
+
+.hlbl-on { color: var(--color-olive); }
+
+/* ── 2-COL GRID ──────────────────────────────────────────────── */
+.g2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+/* ── CIRCULAR PROGRESS ───────────────────────────────────────── */
+.cring {
+  position: relative;
+  display: inline-block;
+}
+
+.cring-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cring-val { font-size: 13px; font-weight: 700; color: var(--color-ink); }
+.cring-sub { font-size: 10px; color: var(--color-inkfaint); }
+
+/* ── PROGRESS BAR ────────────────────────────────────────────── */
+.pbar {
+  height: 5px;
+  background: var(--color-sandy);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.pfill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* ── WEEK DOTS ───────────────────────────────────────────────── */
+.wrow { display: flex; gap: 6px; }
+
+.wcol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.wdot {
+  height: 30px;
+  border-radius: 6px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wdot-on  { background: var(--color-olive); }
+.wdot-off { background: var(--color-sandy); }
+.wlbl { font-size: 9px; color: var(--color-inkfaint); }
+
+/* ── MACRO ROW ───────────────────────────────────────────────── */
+.macrow { display: flex; gap: 10px; }
+
+.macitem { flex: 1; text-align: center; }
+
+.macval {
+  font-size: 17px;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.macname { font-size: 10px; color: var(--color-inkfaint); margin-top: 2px; }
+
+/* ── MEAL ITEM ───────────────────────────────────────────────── */
+.mitem {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mname { font-size: 14px; font-weight: 600; color: var(--color-ink); margin-bottom: 2px; }
+.msub  { font-size: 11px; color: var(--color-inkfaint); margin-bottom: 5px; }
+.mmacros { display: flex; gap: 8px; font-size: 11px; }
+.mkcal { font-size: 17px; font-weight: 700; color: var(--color-ink); text-align: right; }
+.munit { font-size: 10px; color: var(--color-inkfaint); text-align: right; }
+
+/* ── WATER BUTTONS ───────────────────────────────────────────── */
+.wbgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: var(--space-2xl);
+}
+
+.wbtn {
+  background: var(--bg-card);
+  border: none;
+  border-radius: 14px;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+  transition: background 0.15s;
+}
+
+.wbtn:active { background: var(--color-sandy); }
+.wbtn-icon { font-size: 22px; }
+
+/* ── TAB CHIPS ───────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 18px;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.chip {
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.chip-on  { background: var(--color-olive); color: #fff; }
+.chip-off { background: var(--bg-card); color: var(--color-inkfaint); }
+
+/* ── EXERCISE ROW ────────────────────────────────────────────── */
+.exrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg-card-alt);
+}
+
+.exrow:last-child { border-bottom: none; }
+.exname { font-size: 13px; color: var(--color-ink); font-weight: 500; }
+.extags { display: flex; gap: 8px; }
+.etag { background: var(--bg-card-alt); padding: 3px 9px; border-radius: 10px; font-size: 11px; color: var(--color-inkfaint); }
+
+/* ── MEASURE ROW ─────────────────────────────────────────────── */
+.measrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--bg-card-alt);
+}
+
+.measrow:last-child { border-bottom: none; }
+.measname  { font-size: 13px; color: var(--color-inklight); }
+.measright { display: flex; gap: 12px; align-items: center; }
+.measdelta { font-size: 13px; font-weight: 500; }
+.delta-neg { color: var(--color-olive); }
+.delta-pos { color: var(--color-soft); }
+.measval   { font-size: 15px; font-weight: 700; color: var(--color-ink); }
+
+/* ── PHOTO SLOTS ─────────────────────────────────────────────── */
+.pslots { display: flex; gap: 10px; }
+
+.pslot { flex: 1; text-align: center; }
+
+.pbox {
+  height: 88px;
+  background: var(--bg-card-alt);
+  border-radius: var(--r-md);
+  border: 2px dashed var(--color-offmobile);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.pbox-lbl { font-size: 11px; color: var(--color-inkfaint); }
+
+/* ── SCORE TRIO ──────────────────────────────────────────────── */
+.strio { display: flex; gap: 10px; }
+
+.strioi {
+  flex: 1;
+  background: var(--bg-card-alt);
+  border-radius: var(--r-md);
+  padding: 14px;
+  text-align: center;
+}
+
+.striol { font-size: 11px; color: var(--color-inkfaint); margin-bottom: 4px; }
+
+.striov {
+  font-size: 26px;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* ── STAT MINI ───────────────────────────────────────────────── */
+.smini {
+  background: var(--bg-card-alt);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+}
+
+.sml { font-size: 11px; color: var(--color-inkfaint); margin-bottom: 4px; }
+.smv { font-size: 20px; font-family: var(--font-display); font-weight: 700; color: var(--color-ink); }
+
+/* ── NUTRI HERO ──────────────────────────────────────────────── */
+.nhero {
+  background: var(--bg-card);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-subtle);
+}
+
+.nkcal { font-family: var(--font-display); font-size: 34px; font-weight: 700; color: var(--color-ink); }
+.nkcal span { font-size: 15px; color: var(--color-inkfaint); }
+
+/* ── AI ANALYSIS ─────────────────────────────────────────────── */
+.aibox {
+  background: var(--bg-card-alt);
+  border-radius: var(--r-md);
+  padding: 13px;
+  margin-bottom: 10px;
+}
+
+.aititle  { font-size: 12px; color: var(--color-olive); font-weight: 600; margin-bottom: 6px; }
+.aifoods  { font-size: 12px; color: var(--color-ink); margin-bottom: 6px; }
+.aimacros { display: flex; gap: 8px; font-size: 11px; color: var(--color-inkfaint); flex-wrap: wrap; }
+
+.aibrow { display: flex; gap: 8px; margin-top: 10px; }
+
+.btn-ok  { flex: 1; background: var(--color-olive); border: none; border-radius: 10px; padding: 10px; color: #fff; font-size: 13px; font-weight: 600; }
+.btn-adj { flex: 1; background: var(--color-sandy); border: none; border-radius: 10px; padding: 10px; color: var(--color-inklight); font-size: 13px; }
+
+/* ── MAIN BUTTON ─────────────────────────────────────────────── */
+.mainbtn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ── EMPTY STATE ─────────────────────────────────────────────── */
+.empty {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 32px;
+  text-align: center;
+}
+
+.eico { font-size: 36px; margin-bottom: 8px; }
+.etxt { font-size: 14px; color: var(--color-inkfaint); margin-bottom: 16px; }
+
+/* ── FAB ─────────────────────────────────────────────────────── */
+.fab {
+  position: absolute;
+  bottom: 90px;
+  right: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-soft);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(201,132,90,0.45);
+  z-index: 40;
+  transition: transform 0.15s;
+}
+
+.fab:active { transform: scale(0.94); }
+
+/* ── BOTTOM NAV ──────────────────────────────────────────────── */
+.nav {
+  /* Fora do scroll — flex item fixo na parte inferior do .phone */
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.96);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  padding: 10px 0 22px;
+  z-index: 50;
+}
+
+.ni {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--color-sage);
+  transition: color 0.2s;
+}
+
+.ni.active { color: var(--color-olive); }
+.ni-lbl { font-size: 10px; font-weight: 500; }
+
+/* ── AI SCREEN ───────────────────────────────────────────────── */
+.screen-ai {
+  flex-direction: column;
+  padding: 0;
+}
+/* Só mostra como flex quando está .on */
+.screen-ai.on { display: flex; }
+
+.ai-hdr {
+  padding: 20px 16px 12px;
+  flex-shrink: 0;
+}
+
+.ai-sugg {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sugg-btn {
+  background: var(--bg-card);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-inklight);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+}
+
+.sugg-btn:active { background: var(--color-sandy); }
+
+.msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msgs::-webkit-scrollbar { display: none; }
+
+.bubble {
+  max-width: 85%;
+  padding: 12px 15px;
+  font-size: 13px;
+  line-height: 1.55;
+  border-radius: 18px;
+  white-space: pre-wrap;
+}
+
+.bubble-ai   { align-self: flex-start; background: var(--bg-card); color: var(--color-ink); border-bottom-left-radius: 4px; }
+.bubble-user { align-self: flex-end; background: var(--color-olive); color: #fff; border-bottom-right-radius: 4px; }
+
+.typing-dots { display: flex; gap: 5px; padding: 2px 0; }
+
+.tdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-inkfaint);
+  animation: bounce 1.2s ease infinite;
+}
+
+.tdot:nth-child(2) { animation-delay: .2s; }
+.tdot:nth-child(3) { animation-delay: .4s; }
+
+.ai-inp-wrap {
+  padding: 12px 16px 28px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  gap: 10px;
+  background: var(--bg-screen);
+  flex-shrink: 0;
+}
+
+.ai-inp {
+  flex: 1;
+  background: var(--bg-card);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 12px 15px;
+  font-size: 13px;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.ai-send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--color-olive);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── SPINNER ─────────────────────────────────────────────────── */
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--color-sandy);
+  border-top-color: var(--color-olive);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 12px;
+}
+
+/* ── FORM INPUTS ─────────────────────────────────────────────── */
+.form-input {
+  width: 100%;
+  background: var(--bg-card-alt);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.form-input:focus {
+  border-color: var(--color-olive);
+}
+
+.form-input::placeholder {
+  color: var(--color-offmobile);
+}
+
+/* Remove number input spinners */
+.form-input[type=number]::-webkit-inner-spin-button,
+.form-input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+/* ── BACK HEADER ─────────────────────────────────────────────── */
+.screen-back-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-inklight);
+  flex-shrink: 0;
+}
+
+.back-btn:active { background: var(--color-sandy); }
+
+/* ── FAB (gota d'água) ───────────────────────────────────────── */
+/* Sobrescreve o estilo do fab para deixar ícone de gota */
