@@ -14,11 +14,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/reset.css?v=20260615f">
-  <link rel="stylesheet" href="css/tokens.css?v=20260615f">
-  <link rel="stylesheet" href="css/components.css?v=20260615f">
-  <link rel="stylesheet" href="css/screens.css?v=20260615f">
-  <link rel="stylesheet" href="css/animations.css?v=20260615f">
+  <link rel="stylesheet" href="css/reset.css?v=20260615g">
+  <link rel="stylesheet" href="css/tokens.css?v=20260615g">
+  <link rel="stylesheet" href="css/components.css?v=20260615g">
+  <link rel="stylesheet" href="css/screens.css?v=20260615g">
+  <link rel="stylesheet" href="css/animations.css?v=20260615g">
 </head>
 <body>
 
@@ -29,7 +29,7 @@
       <p class="overlay-sub">Painel de Evolução · Entre com sua conta Sistema Íris</p>
       <input class="form-input" id="authEmail" type="email" placeholder="E-mail" autocomplete="username" style="margin-bottom:10px">
       <input class="form-input" id="authPassword" type="password" placeholder="Senha" autocomplete="current-password" style="margin-bottom:14px">
-      <button class="mainbtn" id="authSubmitBtn" style="background:#7A836A">Entrar</button>
+      <button class="mainbtn" id="authSubmitBtn" style="background:#3E6770">Entrar</button>
       <p class="overlay-error" id="authError"></p>
     </div>
   </div>
@@ -52,7 +52,7 @@
     <!-- SCROLL AREA -->
     <div class="scroll" id="scrollEl">
 
-      <!-- DASHBOARD -->
+      <!-- HOJE (Dashboard) -->
       <div class="screen on" id="s-dash" data-screen="dash">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
           <img src="assets/icons/icon-192.png" alt="Vitta+" style="width:36px;height:36px;border-radius:10px;flex-shrink:0">
@@ -61,37 +61,38 @@
             <h1 class="screen-title" id="greetLine" style="margin-bottom:0">Bom dia, Adriana</h1>
           </div>
         </div>
-        <div id="scoreHero" class="score-hero"></div>
 
+        <!-- Evolução da Semana (card principal) -->
+        <div id="weekEvolutionCard" class="card" style="margin-bottom:12px"></div>
+
+        <!-- Ações de Hoje -->
         <h2 class="section-title section-title-first">Ações de Hoje</h2>
-        <div id="habitsCard" class="card"></div>
-        <div id="todayWorkoutCard" class="card"></div>
-        <div id="statsGrid" class="g2"></div>
+        <div id="actionsCard" class="card"></div>
+
+        <!-- Minha Evolução (cards horizontais) -->
+        <h2 class="section-title">Minha Evolução</h2>
+        <div id="evolutionStrip" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+
+        <!-- Nutrição de hoje -->
+        <h2 class="section-title">Nutrição de Hoje</h2>
         <div id="nutriSummary" class="card"></div>
 
-        <h2 class="section-title">Evolução da Semana</h2>
-        <div id="weekScoreCard" class="card"></div>
-        <div id="weekWorkouts" class="card"></div>
+        <!-- Modais inline do Dashboard -->
+        <div id="dashModals"></div>
       </div>
 
-      <!-- HIDRATAÇÃO -->
-      <div class="screen" id="s-hydro" data-screen="hydro">
-        <div class="screen-back-header">
-          <button class="back-btn" onclick="Router.back()" aria-label="Voltar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h1 class="screen-title" style="margin-bottom:0">Hidratação</h1>
-          <div style="width:36px"></div><!-- espaçador para centralizar título -->
-        </div>
-        <p class="screen-sub">Meta diária: <span id="waterGoalLabel">2.5L</span></p>
-        <div id="hydroContent"></div>
+      <!-- EVOLUÇÃO (Progresso) -->
+      <div class="screen" id="s-prog" data-screen="prog">
+        <h1 class="screen-title">Evolução</h1>
+        <p class="screen-sub">Corpo e saúde metabólica</p>
+        <div id="progContent"></div>
       </div>
 
-      <!-- NUTRIÇÃO -->
-      <div class="screen" id="s-nutri" data-screen="nutri">
-        <h1 class="screen-title">Alimentação</h1>
-        <p class="screen-sub" id="nutriDate"></p>
-        <div id="nutriContent"></div>
+      <!-- SAÚDE -->
+      <div class="screen" id="s-health" data-screen="health">
+        <h1 class="screen-title" style="color:var(--color-health)">Saúde</h1>
+        <p class="screen-sub">Consultas, medicamentos e eventos de saúde</p>
+        <div id="healthContent"></div>
       </div>
 
       <!-- TREINOS -->
@@ -99,13 +100,6 @@
         <h1 class="screen-title">Treinos</h1>
         <p class="screen-sub" id="workSub"></p>
         <div id="workContent"></div>
-      </div>
-
-      <!-- PROGRESSO -->
-      <div class="screen" id="s-prog" data-screen="prog">
-        <h1 class="screen-title">Progresso</h1>
-        <p class="screen-sub">Corpo e saúde metabólica</p>
-        <div id="progContent"></div>
       </div>
 
       <!-- IA -->
@@ -124,7 +118,33 @@
         </div>
       </div>
 
-      <!-- CONFIGURAÇÕES -->
+      <!-- NUTRIÇÃO (acessível via FAB) -->
+      <div class="screen" id="s-nutri" data-screen="nutri">
+        <div class="screen-back-header">
+          <button class="back-btn" onclick="Router.back()" aria-label="Voltar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h1 class="screen-title" style="margin-bottom:0">Alimentação</h1>
+          <div style="width:36px"></div>
+        </div>
+        <p class="screen-sub" id="nutriDate"></p>
+        <div id="nutriContent"></div>
+      </div>
+
+      <!-- HIDRATAÇÃO (acessível via FAB) -->
+      <div class="screen" id="s-hydro" data-screen="hydro">
+        <div class="screen-back-header">
+          <button class="back-btn" onclick="Router.back()" aria-label="Voltar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h1 class="screen-title" style="margin-bottom:0">Hidratação</h1>
+          <div style="width:36px"></div>
+        </div>
+        <p class="screen-sub">Meta diária: <span id="waterGoalLabel">2.5L</span></p>
+        <div id="hydroContent"></div>
+      </div>
+
+      <!-- CONFIGURAÇÕES (acessível via FAB) -->
       <div class="screen" id="s-config" data-screen="config">
         <div class="screen-back-header">
           <button class="back-btn" onclick="Router.back()" aria-label="Voltar">
@@ -139,70 +159,143 @@
 
     </div><!-- /scroll -->
 
-    <!-- FAB: abre Hidratação -->
-    <button class="fab" id="fabBtn" aria-label="Registrar água">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-        <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+    <!-- ── FAB SPEED DIAL OVERLAY ─────────────────────────────── -->
+    <div id="fabOverlay" style="
+      display:none;opacity:0;
+      position:fixed;inset:0;
+      background:rgba(44,43,40,0.55);
+      backdrop-filter:blur(2px);
+      z-index:90;
+      align-items:flex-end;justify-content:flex-end;
+      padding:0 20px 100px 20px;
+      transition:opacity .18s;
+      flex-direction:column;
+      gap:10px;
+    ">
+      <!-- items do speed dial (de baixo para cima) -->
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Configurações</span>
+          <button class="fab-item" data-fab-action="config" aria-label="Configurações">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Peso</span>
+          <button class="fab-item" data-fab-action="peso" aria-label="Registrar peso">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="7" cy="9" r="2"/><circle cx="17" cy="15" r="2"/></svg>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Sono</span>
+          <button class="fab-item" data-fab-action="sleep" aria-label="Registrar sono">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Cardio</span>
+          <button class="fab-item" data-fab-action="cardio" aria-label="Registrar cardio">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="13 17 18 12 13 7"/><path d="M18 12H6"/><circle cx="6" cy="12" r="2"/></svg>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Treino</span>
+          <button class="fab-item" data-fab-action="treino" aria-label="Ir para treinos">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="7" width="4" height="10" rx="1"/><rect x="19" y="7" width="4" height="10" rx="1"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="5" y1="14" x2="19" y2="14"/></svg>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Proteína & Alimentação</span>
+          <button class="fab-item" data-fab-action="nutri" aria-label="Nutrição">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 3v4a1 1 0 001 1h8a1 1 0 001-1V3M12 8v13M5 21h14"/></svg>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="fab-label">Água</span>
+          <button class="fab-item" data-fab-action="water" aria-label="Hidratação">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FAB Principal (+ global register) -->
+    <button class="fab" id="fabBtn" aria-label="Registrar">
+      <svg class="fab-icon-plus" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      <svg class="fab-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" style="display:none">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>
 
-    <!-- BOTTOM NAV -->
+    <!-- BOTTOM NAV — Hoje / Evolução / Saúde / Treinos / IA -->
     <nav class="nav" id="bottomNav">
-      <button class="ni active" data-nav="dash" aria-label="Início">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span class="ni-lbl">Início</span>
+      <button class="ni active" data-nav="dash" aria-label="Hoje">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="ni-lbl">Hoje</span>
       </button>
-      <button class="ni" data-nav="nutri" aria-label="Nutrição">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v4a1 1 0 001 1h8a1 1 0 001-1V3M12 8v13M5 21h14"/></svg>
-        <span class="ni-lbl">Nutrição</span>
-      </button>
-      <button class="ni" data-nav="work" aria-label="Treino">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="4" height="10" rx="1"/><rect x="19" y="7" width="4" height="10" rx="1"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="5" y1="14" x2="19" y2="14"/></svg>
-        <span class="ni-lbl">Treino</span>
-      </button>
-      <button class="ni" data-nav="prog" aria-label="Progresso">
+      <button class="ni" data-nav="prog" aria-label="Evolução">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span class="ni-lbl">Progresso</span>
+        <span class="ni-lbl">Evolução</span>
+      </button>
+      <button class="ni" data-nav="health" aria-label="Saúde">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        <span class="ni-lbl">Saúde</span>
+      </button>
+      <button class="ni" data-nav="work" aria-label="Treinos">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="4" height="10" rx="1"/><rect x="19" y="7" width="4" height="10" rx="1"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="5" y1="14" x2="19" y2="14"/></svg>
+        <span class="ni-lbl">Treinos</span>
       </button>
       <button class="ni" data-nav="ai" aria-label="Assistente IA">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span class="ni-lbl">IA</span>
       </button>
 
-      <!-- ITENS EXTRAS — visíveis apenas na sidebar desktop -->
       <div class="nav-spacer nav-desktop-only"></div>
-    <button class="ni nav-desktop-only" data-nav="config" aria-label="Configurações">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-      </svg>
-      <span class="ni-lbl">Configurações</span>
-    </button>
-    <button class="ni nav-desktop-only" id="navLogoutBtn" aria-label="Sair">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-      </svg>
-      <span class="ni-lbl">Sair</span>
-    </button>
-  </nav>
+      <button class="ni nav-desktop-only" data-nav="config" aria-label="Configurações">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        <span class="ni-lbl">Configurações</span>
+      </button>
+      <button class="ni nav-desktop-only" id="navLogoutBtn" aria-label="Sair">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span class="ni-lbl">Sair</span>
+      </button>
+    </nav>
 
   </div><!-- /app -->
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/storage.js?v=20260615f"></script>
-  <script src="js/data.js?v=20260615f"></script>
-  <script src="js/utils.js?v=20260615f"></script>
-  <script src="js/charts.js?v=20260615f"></script>
-  <script src="js/screens/dashboard.js?v=20260615f"></script>
-  <script src="js/screens/hydration.js?v=20260615f"></script>
-  <script src="js/screens/nutrition.js?v=20260615f"></script>
-  <script src="js/screens/workout.js?v=20260615f"></script>
-  <script src="js/screens/progress.js?v=20260615f"></script>
-  <script src="js/screens/ai.js?v=20260615f"></script>
-  <script src="js/screens/config.js?v=20260615f"></script>
-  <script src="js/screens/auth.js?v=20260615f"></script>
-  <script src="js/router.js?v=20260615f"></script>
-  <script src="js/app.js?v=20260615f"></script>
-  <script src="js/sw-register.js?v=20260615f"></script>
+  <script src="js/storage.js?v=20260615g"></script>
+  <script src="js/data.js?v=20260615g"></script>
+  <script src="js/utils.js?v=20260615g"></script>
+  <script src="js/charts.js?v=20260615g"></script>
+  <script src="js/screens/dashboard.js?v=20260615g"></script>
+  <script src="js/screens/hydration.js?v=20260615g"></script>
+  <script src="js/screens/nutrition.js?v=20260615g"></script>
+  <script src="js/screens/workout.js?v=20260615g"></script>
+  <script src="js/screens/progress.js?v=20260615g"></script>
+  <script src="js/screens/health.js?v=20260615g"></script>
+  <script src="js/screens/ai.js?v=20260615g"></script>
+  <script src="js/screens/config.js?v=20260615g"></script>
+  <script src="js/screens/auth.js?v=20260615g"></script>
+  <script src="js/router.js?v=20260615g"></script>
+  <script src="js/app.js?v=20260615g"></script>
+  <script src="js/sw-register.js?v=20260615g"></script>
 </body>
 </html>
