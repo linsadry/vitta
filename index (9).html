@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Vitta+">
+  <meta name="theme-color" content="#3E6770">
+  <title>Vitta+</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/reset.css?v=20260615f">
+  <link rel="stylesheet" href="css/tokens.css?v=20260615f">
+  <link rel="stylesheet" href="css/components.css?v=20260615f">
+  <link rel="stylesheet" href="css/screens.css?v=20260615f">
+  <link rel="stylesheet" href="css/animations.css?v=20260615f">
+</head>
+<body>
+
+  <!-- LOGIN (Supabase Auth) -->
+  <div class="overlay" id="authScreen">
+    <div class="overlay-card">
+      <h1 class="overlay-title">Vitta+</h1>
+      <p class="overlay-sub">Painel de Evolução · Entre com sua conta Sistema Íris</p>
+      <input class="form-input" id="authEmail" type="email" placeholder="E-mail" autocomplete="username" style="margin-bottom:10px">
+      <input class="form-input" id="authPassword" type="password" placeholder="Senha" autocomplete="current-password" style="margin-bottom:14px">
+      <button class="mainbtn" id="authSubmitBtn" style="background:#7A836A">Entrar</button>
+      <p class="overlay-error" id="authError"></p>
+    </div>
+  </div>
+
+  <!-- PIN local -->
+  <div class="overlay" id="pinScreen">
+    <div class="overlay-card">
+      <h1 class="overlay-title" id="pinTitle">PIN</h1>
+      <p class="overlay-sub" id="pinSub"></p>
+      <div class="pin-dots" id="pinDots">
+        <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+      </div>
+      <div class="pin-pad" id="pinPad"></div>
+      <p class="overlay-error" id="pinError"></p>
+    </div>
+  </div>
+
+  <div id="app">
+
+    <!-- SCROLL AREA -->
+    <div class="scroll" id="scrollEl">
+
+      <!-- DASHBOARD -->
+      <div class="screen on" id="s-dash" data-screen="dash">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <img src="assets/icons/icon-192.png" alt="Vitta+" style="width:36px;height:36px;border-radius:10px;flex-shrink:0">
+          <div>
+            <p class="date-line" id="dateLine"></p>
+            <h1 class="screen-title" id="greetLine" style="margin-bottom:0">Bom dia, Adriana</h1>
+          </div>
+        </div>
+        <div id="scoreHero" class="score-hero"></div>
+
+        <h2 class="section-title section-title-first">Ações de Hoje</h2>
+        <div id="habitsCard" class="card"></div>
+        <div id="todayWorkoutCard" class="card"></div>
+        <div id="statsGrid" class="g2"></div>
+        <div id="nutriSummary" class="card"></div>
+
+        <h2 class="section-title">Evolução da Semana</h2>
+        <div id="weekScoreCard" class="card"></div>
+        <div id="weekWorkouts" class="card"></div>
+      </div>
+
+      <!-- HIDRATAÇÃO -->
+      <div class="screen" id="s-hydro" data-screen="hydro">
+        <div class="screen-back-header">
+          <button class="back-btn" onclick="Router.back()" aria-label="Voltar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h1 class="screen-title" style="margin-bottom:0">Hidratação</h1>
+          <div style="width:36px"></div><!-- espaçador para centralizar título -->
+        </div>
+        <p class="screen-sub">Meta diária: <span id="waterGoalLabel">2.5L</span></p>
+        <div id="hydroContent"></div>
+      </div>
+
+      <!-- NUTRIÇÃO -->
+      <div class="screen" id="s-nutri" data-screen="nutri">
+        <h1 class="screen-title">Alimentação</h1>
+        <p class="screen-sub" id="nutriDate"></p>
+        <div id="nutriContent"></div>
+      </div>
+
+      <!-- TREINOS -->
+      <div class="screen" id="s-work" data-screen="work">
+        <h1 class="screen-title">Treinos</h1>
+        <p class="screen-sub" id="workSub"></p>
+        <div id="workContent"></div>
+      </div>
+
+      <!-- PROGRESSO -->
+      <div class="screen" id="s-prog" data-screen="prog">
+        <h1 class="screen-title">Progresso</h1>
+        <p class="screen-sub">Corpo e saúde metabólica</p>
+        <div id="progContent"></div>
+      </div>
+
+      <!-- IA -->
+      <div class="screen screen-ai" id="s-ai" data-screen="ai">
+        <div class="ai-hdr">
+          <h1 class="screen-title">Assistente</h1>
+          <p class="screen-sub" style="margin-bottom:0">✦ Protegido por login + PIN · Privacidade total</p>
+        </div>
+        <div class="ai-sugg" id="suggBox"></div>
+        <div class="msgs" id="msgArea"></div>
+        <div class="ai-inp-wrap">
+          <input class="ai-inp" id="aiInp" placeholder="Pergunte sobre seus dados..." autocomplete="off">
+          <button class="ai-send-btn" id="aiSendBtn" aria-label="Enviar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONFIGURAÇÕES -->
+      <div class="screen" id="s-config" data-screen="config">
+        <div class="screen-back-header">
+          <button class="back-btn" onclick="Router.back()" aria-label="Voltar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h1 class="screen-title" style="margin-bottom:0">Configurações</h1>
+          <div style="width:36px"></div>
+        </div>
+        <p class="screen-sub">Metas e dados pessoais</p>
+        <div id="configContent"></div>
+      </div>
+
+    </div><!-- /scroll -->
+
+    <!-- FAB: abre Hidratação -->
+    <button class="fab" id="fabBtn" aria-label="Registrar água">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+      </svg>
+    </button>
+
+    <!-- BOTTOM NAV -->
+    <nav class="nav" id="bottomNav">
+      <button class="ni active" data-nav="dash" aria-label="Início">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="ni-lbl">Início</span>
+      </button>
+      <button class="ni" data-nav="nutri" aria-label="Nutrição">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v4a1 1 0 001 1h8a1 1 0 001-1V3M12 8v13M5 21h14"/></svg>
+        <span class="ni-lbl">Nutrição</span>
+      </button>
+      <button class="ni" data-nav="work" aria-label="Treino">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="4" height="10" rx="1"/><rect x="19" y="7" width="4" height="10" rx="1"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="5" y1="14" x2="19" y2="14"/></svg>
+        <span class="ni-lbl">Treino</span>
+      </button>
+      <button class="ni" data-nav="prog" aria-label="Progresso">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="ni-lbl">Progresso</span>
+      </button>
+      <button class="ni" data-nav="ai" aria-label="Assistente IA">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="ni-lbl">IA</span>
+      </button>
+
+      <!-- ITENS EXTRAS — visíveis apenas na sidebar desktop -->
+      <div class="nav-spacer nav-desktop-only"></div>
+    <button class="ni nav-desktop-only" data-nav="config" aria-label="Configurações">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+      <span class="ni-lbl">Configurações</span>
+    </button>
+    <button class="ni nav-desktop-only" id="navLogoutBtn" aria-label="Sair">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      <span class="ni-lbl">Sair</span>
+    </button>
+  </nav>
+
+  </div><!-- /app -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/storage.js?v=20260615f"></script>
+  <script src="js/data.js?v=20260615f"></script>
+  <script src="js/utils.js?v=20260615f"></script>
+  <script src="js/charts.js?v=20260615f"></script>
+  <script src="js/screens/dashboard.js?v=20260615f"></script>
+  <script src="js/screens/hydration.js?v=20260615f"></script>
+  <script src="js/screens/nutrition.js?v=20260615f"></script>
+  <script src="js/screens/workout.js?v=20260615f"></script>
+  <script src="js/screens/progress.js?v=20260615f"></script>
+  <script src="js/screens/ai.js?v=20260615f"></script>
+  <script src="js/screens/config.js?v=20260615f"></script>
+  <script src="js/screens/auth.js?v=20260615f"></script>
+  <script src="js/router.js?v=20260615f"></script>
+  <script src="js/app.js?v=20260615f"></script>
+  <script src="js/sw-register.js?v=20260615f"></script>
+</body>
+</html>
