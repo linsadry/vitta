@@ -1,51 +1,50 @@
-/* ── DESIGN TOKENS — Vitta+ Visual Identity ──────────────────── */
+/* ── VITTA+ WELLNESS IDENTITY — Paleta Feminina Premium ─────── */
 :root {
-  /* Paleta Japandi / Dark Autumn */
-  --color-soft:       #C9845A;
-  --color-terracot:   #D4956E;
-  --color-olive:      #7A836A;
-  --color-sage:       #A5AA94;
-  --color-sandy:      #E8E0D0;
-  --color-smokey:     #8D9298;
-  --color-offmobile:  #C8C5BC;
-  --color-offwhite:   #F4F1EC;
-  --color-white:      #FFFFFF;
-  --color-ink:        #2C2B28;
-  --color-inklight:   #4A4844;
-  --color-inkfaint:   #7A7570;
+  /* Nova Paleta */
+  --c-base:       #F9F6F2;   /* off-white quente */
+  --c-blush:      #E8B6B1;   /* rosa blush */
+  --c-rose:       #D38B87;   /* rosa queimado */
+  --c-lavender:   #CBB7D9;   /* lavanda suave */
+  --c-olive:      #AAB38C;   /* verde oliva suave */
+  --c-slate:      #7C9AA6;   /* azul acinzentado */
+  --c-gold:       #D7B37A;   /* dourado suave */
+  --c-ink:        #3C3530;   /* texto principal */
+  --c-ink-soft:   #7A6F6A;   /* texto secundário */
+  --c-ink-faint:  #B5ADA8;   /* texto fraco */
+  --c-white:      #FFFFFF;
 
-  /* Paleta Saúde */
-  --color-health:       #3E6770;
-  --color-health-green: #7A9B76;
-  --color-health-warm:  #E9E2D8;
+  /* Aliases semânticos */
+  --bg:           #F9F6F2;
+  --bg-card:      #FFFFFF;
+  --bg-card-soft: #FDF9F7;
+  --border:       rgba(60,53,48,0.08);
 
-  /* Semantic */
-  --bg-app:           #2C2B28;
-  --bg-screen:        #FAF8F5;
-  --bg-card:          #FFFFFF;
-  --bg-card-alt:      #FAF8F4;
-  --border-subtle:    #EDE8E0;
+  /* Nav colors por seção */
+  --nav-hoje:        #D38B87;
+  --nav-evolucao:    #AAB38C;
+  --nav-saude:       #CBB7D9;
+  --nav-treinos:     #D7B37A;
+  --nav-alimentacao: #7C9AA6;
+  --nav-agua:        #7C9AA6;
+  --nav-sono:        #9098A0;
+  --nav-ciclo:       #E8B6B1;
+  --nav-exames:      #B0A8C4;
+  --nav-ia:          #CBB7D9;
 
-  /* Tipografia — identidade editorial */
-  --font-display:  'Antic Didone', 'Playfair Display', Georgia, serif;
-  --font-body:     'Manrope', 'DM Sans', system-ui, sans-serif;
-  --font-mono:     'DM Mono', monospace;
+  /* Tipografia — editorial wellness */
+  --font-display: 'Cormorant Garamond', 'DM Serif Display', Georgia, serif;
+  --font-body:    'Nunito', 'Inter', system-ui, sans-serif;
+  --font-script:  'Dancing Script', cursive;
 
   /* Espaçamento */
-  --space-xs:   4px;
-  --space-sm:   8px;
-  --space-md:   12px;
-  --space-lg:   16px;
-  --space-xl:   20px;
-  --space-2xl:  24px;
+  --sp-xs: 4px;   --sp-sm: 8px;   --sp-md: 12px;
+  --sp-lg: 16px;  --sp-xl: 20px;  --sp-2xl: 24px;
 
   /* Raios */
-  --r-sm:   8px;
-  --r-md:   12px;
-  --r-lg:   16px;
-  --r-xl:   20px;
-  --r-card: 18px;
-  --r-pill: 50px;
+  --r-sm: 8px;   --r-md: 14px;  --r-lg: 18px;
+  --r-xl: 22px;  --r-pill: 99px;
 
-  --nav-height: 82px;
+  /* Sombras */
+  --shadow-card: 0 2px 12px rgba(60,53,48,0.07), 0 0 0 1px rgba(60,53,48,0.04);
+  --shadow-hover: 0 4px 20px rgba(60,53,48,0.1);
 }
