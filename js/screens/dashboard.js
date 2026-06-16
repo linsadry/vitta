@@ -65,16 +65,24 @@ const ScreenDashboard = (() => {
   }
 
   // ── AÇÕES DE HOJE — grid 2 colunas ───────────────────────────
-  function actCard(type, label, value, valueDone, isDone, btnLabel, action) {
+  // ── AÇÕES DE HOJE — cards premium com estados visuais ───────
+  function actCard(type, label, doneValue, pendingValue, isDone, cta, action) {
     const c = C[type] || C.diary;
     return `
-      <div class="act-card ${isDone ? 'act-done' : ''}" data-dash-action="${action}">
-        <div class="act-card-ico" style="background:${c.bg};color:${c.ico}">
-          ${I[type] || I.diary}
+      <div class="acard ${isDone ? 'acard-done' : 'acard-pending'}" data-dash-action="${action}">
+        <div class="acard-top">
+          <div class="acard-ico" style="background:${c.bg};color:${c.ico}">
+            ${I[type] || I.diary}
+          </div>
+          ${isDone ? '<span class="acard-badge">✓</span>' : ''}
         </div>
-        <p class="act-card-label">${label}</p>
-        <p class="act-card-value ${isDone ? 'act-card-value-done' : ''}">${isDone ? valueDone : value}</p>
-        <button class="act-card-btn">${isDone ? '✓ ' + btnLabel : btnLabel}</button>
+        <p class="acard-label">${label}</p>
+        <p class="acard-value ${isDone ? 'acard-value-done' : 'acard-value-pending'}">
+          ${isDone ? doneValue : pendingValue}
+        </p>
+        ${isDone
+          ? '<p class="acard-status-done">Registrado</p>'
+          : `<button class="acard-cta">${cta}</button>`}
       </div>`;
   }
 
@@ -86,25 +94,25 @@ const ScreenDashboard = (() => {
     const hasProtein  = habits.protein;
     const hasDiary    = habits.meals;
 
-    const sleepH = Storage.prefs.get('sleep_hours_today', 0);
+    const sleepH   = Storage.prefs.get('sleep_hours_today', 0);
+    const cardioCnt = todayCardio.length;
+    const cardioMin = todayCardio.reduce((s, c) => s + (c.duration_min || 0), 0);
 
-    let planSugg = 'Iniciar treino';
+    let planSugg = 'Iniciar';
     if (plans.length > 0) {
       const s = [...plans].sort((a, b) =>
         (lastByPlan[a.id] || '0000-00-00').localeCompare(lastByPlan[b.id] || '0000-00-00')
       )[0];
-      planSugg = s?.name || 'Iniciar treino';
+      planSugg = s?.name || 'Treino';
     }
 
-    const cardioCnt = todayCardio.length;
-
     return `<div class="act-grid">
-      ${actCard('sleep',    'Sono',         'Não registrado',                  sleepH ? sleepH + 'h dormidas' : 'Registrado', hasSleep,    hasSleep ? 'Ver sono'    : 'Registrar', 'sleep')}
-      ${actCard('water',    'Hidratação',   'Meta diária',                     'Aguá adicionada',                             hasWater,    hasWater ? 'Ver'         : 'Adicionar', 'water')}
-      ${actCard('strength', 'Musculação',   planSugg,                          'Concluído hoje',                              hasStrength, hasStrength ? 'Ver'      : 'Treinar',   'workout')}
-      ${actCard('cardio',   'Cardio',       'Não registrado',                  cardioCnt + ' sessão' + (cardioCnt > 1 ? 'ões' : '') + ' hoje', hasCardio, hasCardio ? 'Ver' : 'Registrar', 'cardio')}
-      ${actCard('protein',  'Proteína',     'Registrar refeição',              'Meta atingida',                               hasProtein,  hasProtein ? 'Ver'       : 'Registrar', 'nutrition')}
-      ${actCard('diary',    'Refeições',    'Abrir alimentação',               'Registrado',                                  hasDiary,    hasDiary ? 'Ver'          : 'Registrar', 'nutrition')}
+      ${actCard('sleep',    'Sono',       sleepH ? sleepH + 'h'         : 'Registrado', '—',         hasSleep,    'Registrar', 'sleep')}
+      ${actCard('water',    'Água',       'Adicionado',                               '—',           hasWater,    'Adicionar', 'water')}
+      ${actCard('strength', 'Musculação', planSugg + ' ✓',                            planSugg,      hasStrength, 'Iniciar',   'workout')}
+      ${actCard('cardio',   'Cardio',     cardioMin ? cardioMin + ' min'  : cardioCnt + 'x', '—',    hasCardio,   'Registrar', 'cardio')}
+      ${actCard('protein',  'Proteína',   'Meta atingida',                            '—',           hasProtein,  'Registrar', 'nutrition')}
+      ${actCard('diary',    'Refeições',  'Registrado',                               '—',           hasDiary,    'Ver',       'nutrition')}
     </div>`;
   }
 
