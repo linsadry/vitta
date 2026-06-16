@@ -1,6 +1,6 @@
 /* ── DESIGN TOKENS ──────────────────────────────────────────── */
 :root {
-  /* Japandi Palette */
+  /* Japandi Palette (original) */
   --color-soft:       #C9845A;
   --color-terracot:   #D4956E;
   --color-olive:      #7A836A;
@@ -14,9 +14,14 @@
   --color-inklight:   #4A4844;
   --color-inkfaint:   #7A7570;
 
+  /* Vitta+ Paleta Saúde */
+  --color-health:       #3E6770;   /* Azul Petróleo — títulos, acentos */
+  --color-health-green: #7A9B76;   /* Verde Sálvia — indicadores, barras */
+  --color-health-warm:  #E9E2D8;   /* Bege Quente — cards secundários */
+
   /* Semantic */
   --bg-app:           #2C2B28;
-  --bg-screen:        #F4F1EC;
+  --bg-screen:        #F7F4EE;     /* levemente mais quente que o original */
   --bg-card:          #FFFFFF;
   --bg-card-alt:      #FAF8F4;
   --border-subtle:    #E8E0D0;

@@ -397,7 +397,7 @@ body {
   transition: all 0.2s;
 }
 
-.chip-on  { background: var(--color-olive); color: #fff; }
+.chip-on  { background: var(--color-health); color: #fff; }
 .chip-off { background: var(--bg-card); color: var(--color-inkfaint); }
 
 /* ── EXERCISE ROW ────────────────────────────────────────────── */
@@ -551,19 +551,21 @@ body {
   position: fixed;
   bottom: 90px;
   right: 18px;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: var(--color-soft);
+  background: var(--color-health);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(201,132,90,0.45);
-  z-index: 40;
-  transition: transform 0.15s;
+  box-shadow: 0 4px 16px rgba(62,103,112,0.45);
+  z-index: 100;
+  transition: transform 0.15s, background 0.2s;
+  cursor: pointer;
 }
 
+.fab.fab-open { background: var(--color-ink); }
 .fab:active { transform: scale(0.94); }
 
 /* ── BOTTOM NAV (mobile) / SIDEBAR (desktop) ────────────────────── */
@@ -821,3 +823,59 @@ body {
     bottom: 32px;
   }
 }
+
+/* ── FASE 4: NOVOS COMPONENTES ───────────────────────────────── */
+
+/* Field label (forms e modais) */
+.field-label {
+  font-size: 11px;
+  color: #7A7570;
+  display: block;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* FAB Speed Dial — itens */
+.fab-item {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #2C2B28;
+  transition: transform 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.fab-item:active {
+  transform: scale(0.92);
+  background: #F4F1EC;
+}
+
+/* FAB Speed Dial — labels */
+.fab-label {
+  background: #2C2B28;
+  color: #F4F1EC;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-family: var(--font-body);
+}
+
+/* FAB icon toggle (+ / ×) */
+.fab-open .fab-icon-plus  { display: none !important; }
+.fab-open .fab-icon-close { display: block !important; }
+
+/* Evolution strip (cards horizontais) */
+#evolutionStrip::-webkit-scrollbar { display: none; }
+
+/* Section title override para tela Saúde */
+#s-health .screen-title { color: var(--color-health); }
