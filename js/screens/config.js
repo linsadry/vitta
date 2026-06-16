@@ -18,15 +18,15 @@ const ScreenConfig = (() => {
 
   function render() {
     const u = DefaultData.user;
-    // Ler prefs salvas (ou usar defaults)
     const name     = Storage.prefs.get('user_name',      u.name);
     const water    = Storage.prefs.get('goal_water_ml',  u.waterGoalMl);
     const kcal     = Storage.prefs.get('goal_kcal',      u.kcalGoal);
     const protein  = Storage.prefs.get('goal_protein_g', u.proteinGoalG);
     const steps    = Storage.prefs.get('goal_steps',     u.stepsGoal);
     const sleep    = Storage.prefs.get('goal_sleep_h',   u.sleepGoalH);
+    const strength = Storage.prefs.get('goal_strength_week', 4);
+    const walk     = Storage.prefs.get('goal_walk_week',     5);
 
-    // Dados manuais de hoje (para o que o Health não exporta via browser)
     const sleepH   = Storage.prefs.get('sleep_hours_today', '');
     const bedtime  = Storage.prefs.get('sleep_bedtime',     '');
     const wakeup   = Storage.prefs.get('sleep_wakeup',      '');
@@ -45,19 +45,28 @@ const ScreenConfig = (() => {
         </div>
       </div>
 
-      <!-- METAS -->
+      <!-- METAS DIÁRIAS -->
       <div class="card" style="margin-bottom:12px">
         <p class="caps">Metas diárias</p>
-        ${renderField('cfgName',    'Nome',         name,    'text')}
+        ${renderField('cfgName',    'Nome',         name,       'text')}
         ${renderField('cfgWater',   'Água',         water/1000, 'number', 'litros')}
-        ${renderField('cfgKcal',    'Calorias',     kcal,    'number', 'kcal')}
-        ${renderField('cfgProtein', 'Proteína',     protein, 'number', 'g')}
-        ${renderField('cfgSteps',   'Passos',       steps,   'number', 'passos')}
-        ${renderField('cfgSleep',   'Sono',         sleep,   'number', 'horas')}
-        <button class="mainbtn" id="saveGoalsBtn" style="background:#7A836A;margin-top:4px">Salvar metas</button>
+        ${renderField('cfgKcal',    'Calorias',     kcal,       'number', 'kcal')}
+        ${renderField('cfgProtein', 'Proteína',     protein,    'number', 'g')}
+        ${renderField('cfgSteps',   'Passos',       steps,      'number', 'passos')}
+        ${renderField('cfgSleep',   'Sono',         sleep,      'number', 'horas')}
       </div>
 
-      <!-- REGISTRO MANUAL (dados que não vêm do Health via browser) -->
+      <!-- METAS SEMANAIS -->
+      <div class="card" style="margin-bottom:12px">
+        <p class="caps">Metas semanais</p>
+        ${renderField('cfgStrength', 'Musculação', strength, 'number', 'sessões/semana',
+          'Quantas sessões de musculação por semana você quer atingir.')}
+        ${renderField('cfgWalk',     'Cardio',     walk,     'number', 'sessões/semana',
+          'Caminhadas, corridas ou cardio por semana.')}
+        <button class="mainbtn" id="saveGoalsBtn" style="background:#3E6770;margin-top:4px">Salvar metas</button>
+      </div>
+
+      <!-- REGISTRO MANUAL -->
       <div class="card" style="margin-bottom:12px">
         <p class="caps">Registro manual de hoje</p>
         <p style="font-size:11px;color:#A5AA94;margin-bottom:14px;line-height:1.5">
@@ -105,7 +114,6 @@ const ScreenConfig = (() => {
         Vitta+ · Sistema Íris · Dados privados, protegidos por login + PIN
       </p>`;
 
-    // Conta: alterar PIN
     document.getElementById('changePinBtn').addEventListener('click', () => {
       ScreenAuth.showPinSetup(() => {
         ScreenAuth.hideOverlays();
@@ -114,26 +122,25 @@ const ScreenConfig = (() => {
       });
     });
 
-    // Conta: sair
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       if (!confirm('Sair da sua conta neste dispositivo?')) return;
       await Storage.auth.signOut();
       location.reload();
     });
 
-    // Salvar metas
     document.getElementById('saveGoalsBtn').addEventListener('click', () => {
       const waterL = parseFloat(document.getElementById('cfgWater').value);
-      Storage.prefs.set('user_name',      document.getElementById('cfgName').value.trim() || u.name);
-      Storage.prefs.set('goal_water_ml',  Math.round((waterL || u.waterGoalMl/1000) * 1000));
-      Storage.prefs.set('goal_kcal',      parseInt(document.getElementById('cfgKcal').value)    || u.kcalGoal);
-      Storage.prefs.set('goal_protein_g', parseInt(document.getElementById('cfgProtein').value) || u.proteinGoalG);
-      Storage.prefs.set('goal_steps',     parseInt(document.getElementById('cfgSteps').value)   || u.stepsGoal);
-      Storage.prefs.set('goal_sleep_h',   parseFloat(document.getElementById('cfgSleep').value) || u.sleepGoalH);
+      Storage.prefs.set('user_name',           document.getElementById('cfgName').value.trim() || u.name);
+      Storage.prefs.set('goal_water_ml',       Math.round((waterL || u.waterGoalMl/1000) * 1000));
+      Storage.prefs.set('goal_kcal',           parseInt(document.getElementById('cfgKcal').value)     || u.kcalGoal);
+      Storage.prefs.set('goal_protein_g',      parseInt(document.getElementById('cfgProtein').value)  || u.proteinGoalG);
+      Storage.prefs.set('goal_steps',          parseInt(document.getElementById('cfgSteps').value)    || u.stepsGoal);
+      Storage.prefs.set('goal_sleep_h',        parseFloat(document.getElementById('cfgSleep').value)  || u.sleepGoalH);
+      Storage.prefs.set('goal_strength_week',  parseInt(document.getElementById('cfgStrength').value) || 4);
+      Storage.prefs.set('goal_walk_week',      parseInt(document.getElementById('cfgWalk').value)     || 5);
       showToast('Metas salvas ✓');
     });
 
-    // Salvar dados diários
     document.getElementById('saveDailyBtn').addEventListener('click', () => {
       const h = parseFloat(document.getElementById('cfgSleepH').value);
       if (h) Storage.prefs.set('sleep_hours_today', h);
@@ -146,7 +153,6 @@ const ScreenConfig = (() => {
       showToast('Dados do dia salvos ✓');
     });
 
-    // Limpar dados
     document.getElementById('clearDataBtn').addEventListener('click', () => {
       if (!confirm('Apagar TODOS os dados permanentemente?')) return;
       Storage.clearAll().then(() => {
@@ -155,7 +161,6 @@ const ScreenConfig = (() => {
       });
     });
 
-    // Conta: buscar e-mail sem bloquear o render da tela
     const emailEl = document.getElementById('cfgAccountEmail');
     Promise.race([
       Storage.auth.getSession(),
@@ -167,7 +172,6 @@ const ScreenConfig = (() => {
     });
   }
 
-  // Toast de feedback
   function showToast(msg) {
     let t = document.getElementById('toast');
     if (!t) {
