@@ -60,7 +60,7 @@
           <div class="dash-hero-text">
             <p class="dash-hero-date" id="dateLine"></p>
             <h1 class="dash-hero-greeting" id="greetLine">Bom dia,<br>Adriana.</h1>
-            <p class="dash-hero-tagline">Sua jornada continua.</p>
+            <p class="dash-hero-tagline">Vitta+ &mdash; Seu espaço para acompanhar saúde,<br>bem-estar e evolução ao longo da vida.</p>
           </div>
           <div class="dash-hero-botanical" aria-hidden="true">
             <!-- Ilustração botânica inline — caule + folhas orgânicas -->
@@ -120,10 +120,19 @@
       </div>
 
       <!-- SAÚDE -->
-      <div class="screen" id="s-health" data-screen="health">
-        <h1 class="screen-title" style="color:var(--color-health)">Saúde</h1>
-        <p class="screen-sub">Consultas, medicamentos e eventos</p>
-        <div id="healthContent"></div>
+      <div class="screen" id="s-health" data-screen="health" style="position:relative">
+        <!-- Marca d'água: folha -->
+        <svg aria-hidden="true" style="position:absolute;top:4px;right:0;opacity:0.09;pointer-events:none;z-index:0" width="88" height="88" viewBox="0 0 88 88" fill="none">
+          <path d="M44 78C32 66 10 56 10 36C10 16 28 6 44 18C60 6 78 16 78 36C78 56 56 66 44 78Z" fill="#3E6770"/>
+          <path d="M44 78C44 56 44 32 44 18" stroke="#3E6770" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M44 52C35 46 24 44 22 34" stroke="#3E6770" stroke-width="0.8" stroke-linecap="round" stroke-opacity="0.6"/>
+          <path d="M44 38C53 32 64 30 66 20" stroke="#3E6770" stroke-width="0.8" stroke-linecap="round" stroke-opacity="0.6"/>
+        </svg>
+        <div style="position:relative;z-index:1">
+          <h1 class="screen-title" style="color:var(--color-health)">Saúde</h1>
+          <p class="screen-sub">Consultas, medicamentos e eventos</p>
+          <div id="healthContent"></div>
+        </div>
       </div>
 
       <!-- TREINOS -->
