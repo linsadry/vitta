@@ -1,6 +1,6 @@
-/* ── DESIGN TOKENS ──────────────────────────────────────────── */
+/* ── DESIGN TOKENS — Vitta+ Visual Identity ──────────────────── */
 :root {
-  /* Japandi Palette (original) */
+  /* Paleta Japandi / Dark Autumn */
   --color-soft:       #C9845A;
   --color-terracot:   #D4956E;
   --color-olive:      #7A836A;
@@ -14,23 +14,24 @@
   --color-inklight:   #4A4844;
   --color-inkfaint:   #7A7570;
 
-  /* Vitta+ Paleta Saúde */
-  --color-health:       #3E6770;   /* Azul Petróleo — títulos, acentos */
-  --color-health-green: #7A9B76;   /* Verde Sálvia — indicadores, barras */
-  --color-health-warm:  #E9E2D8;   /* Bege Quente — cards secundários */
+  /* Paleta Saúde */
+  --color-health:       #3E6770;
+  --color-health-green: #7A9B76;
+  --color-health-warm:  #E9E2D8;
 
   /* Semantic */
   --bg-app:           #2C2B28;
-  --bg-screen:        #F7F4EE;     /* levemente mais quente que o original */
+  --bg-screen:        #F8F7F3;
   --bg-card:          #FFFFFF;
   --bg-card-alt:      #FAF8F4;
-  --border-subtle:    #E8E0D0;
+  --border-subtle:    #EDE8E0;
 
-  /* Typography */
-  --font-display:     'Playfair Display', Georgia, serif;
-  --font-body:        'DM Sans', system-ui, sans-serif;
+  /* Tipografia — identidade editorial */
+  --font-display:  'Antic Didone', 'Playfair Display', Georgia, serif;
+  --font-body:     'Manrope', 'DM Sans', system-ui, sans-serif;
+  --font-mono:     'DM Mono', monospace;
 
-  /* Spacing */
+  /* Espaçamento */
   --space-xs:   4px;
   --space-sm:   8px;
   --space-md:   12px;
@@ -38,13 +39,13 @@
   --space-xl:   20px;
   --space-2xl:  24px;
 
-  /* Radius */
+  /* Raios */
   --r-sm:   8px;
   --r-md:   12px;
   --r-lg:   16px;
   --r-xl:   20px;
+  --r-card: 18px;
   --r-pill: 50px;
 
-  /* Nav height (for padding-bottom) */
   --nav-height: 82px;
 }
