@@ -3,7 +3,7 @@
  * Cacheia o shell do app na primeira visita.
  */
 
-const CACHE_NAME = 'fitness-os-v6';
+const CACHE_NAME = 'fitness-os-v7';
 
 const SHELL = [
   '/',
