@@ -175,9 +175,11 @@ const ScreenHealth = (() => {
 
     const CATEGORIES = ['Sintoma', 'Dor', 'Mal-estar', 'Alergia', 'Exame', 'Cirurgia', 'Internação', 'Outro'];
 
+    const BRANCH = '<svg aria-hidden="true" style="position:absolute;bottom:-8px;right:-8px;opacity:0.09;pointer-events:none" width="100" height="70" viewBox="0 0 100 70" fill="none"><path d="M8 58C28 46 58 38 92 14" stroke="#7A9B76" stroke-width="1.2" stroke-linecap="round"/><path d="M34 50C28 36 18 26 26 16" stroke="#7A9B76" stroke-width="0.9" stroke-linecap="round"/><path d="M34 50C40 36 34 24 44 16" stroke="#7A9B76" stroke-width="0.9" stroke-linecap="round"/><path d="M62 34C56 20 46 14 54 4" stroke="#7A9B76" stroke-width="0.9" stroke-linecap="round"/><path d="M62 34C68 20 62 12 72 4" stroke="#7A9B76" stroke-width="0.9" stroke-linecap="round"/><circle cx="26" cy="16" r="2" fill="#7A9B76" fill-opacity="0.4"/><circle cx="44" cy="16" r="2" fill="#7A9B76" fill-opacity="0.4"/><circle cx="54" cy="4" r="2" fill="#7A9B76" fill-opacity="0.4"/><circle cx="72" cy="4" r="2" fill="#7A9B76" fill-opacity="0.4"/></svg>';
     return `
       <!-- Adicionar -->
-      <div class="card" style="margin-bottom:12px">
+      <div class="card" style="margin-bottom:12px;position:relative;overflow:hidden">
+        ${BRANCH}
         <p class="caps" style="margin-bottom:12px;color:var(--color-health)">Novo Evento</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div>
@@ -224,8 +226,10 @@ const ScreenHealth = (() => {
     const allLabs = Storage.labs.getAll();
     const lastLab = allLabs.length ? allLabs[allLabs.length - 1] : null;
 
+    const FLOWER = '<svg aria-hidden="true" style="position:absolute;bottom:-10px;right:-10px;opacity:0.09;pointer-events:none" width="90" height="90" viewBox="0 0 90 90" fill="none"><circle cx="45" cy="45" r="7" fill="#9B7A9B"/><ellipse cx="45" cy="24" rx="6" ry="14" fill="#9B7A9B" fill-opacity="0.7"/><ellipse cx="45" cy="66" rx="6" ry="14" fill="#9B7A9B" fill-opacity="0.7"/><ellipse cx="24" cy="45" rx="14" ry="6" fill="#9B7A9B" fill-opacity="0.7"/><ellipse cx="66" cy="45" rx="14" ry="6" fill="#9B7A9B" fill-opacity="0.7"/><ellipse cx="29" cy="29" rx="6" ry="13" transform="rotate(45 29 29)" fill="#9B7A9B" fill-opacity="0.5"/><ellipse cx="61" cy="29" rx="6" ry="13" transform="rotate(-45 61 29)" fill="#9B7A9B" fill-opacity="0.5"/><ellipse cx="29" cy="61" rx="6" ry="13" transform="rotate(-45 29 61)" fill="#9B7A9B" fill-opacity="0.5"/><ellipse cx="61" cy="61" rx="6" ry="13" transform="rotate(45 61 61)" fill="#9B7A9B" fill-opacity="0.5"/><circle cx="45" cy="45" r="4" fill="#FAF8F5"/></svg>';
     return `
-      <div class="card" style="margin-bottom:12px;border-left:4px solid var(--color-health)">
+      <div class="card" style="margin-bottom:12px;border-left:4px solid var(--color-health);position:relative;overflow:hidden">
+        ${FLOWER}
         <p class="caps" style="color:var(--color-health);margin-bottom:12px">Resumo Médico</p>
 
         <p style="font-size:10px;color:#A5AA94;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Próxima Consulta</p>
