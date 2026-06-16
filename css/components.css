@@ -1271,3 +1271,181 @@ body {
 .cardio-stat-item { text-align: center; background: var(--bg-card-alt); border-radius: 12px; padding: 12px 8px; }
 .cardio-stat-val { font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--color-health); line-height: 1; margin: 0 0 3px; }
 .cardio-stat-lbl { font-size: 10px; color: var(--color-sage); margin: 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   REDESIGN — Ações de Hoje (estado premium) + Botânicos + FAB
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Screen header com botânico ──────────────────────────────── */
+.screen-header-botanical {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.screen-botanical {
+  opacity: 0.18;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* ── Ações de Hoje: grid responsivo ──────────────────────────── */
+.act-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 380px) {
+  .act-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Card base ───────────────────────────────────────────────── */
+.acard {
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  min-height: 148px;
+}
+.acard:active { transform: scale(0.96); opacity: 0.82; }
+
+/* Estado: pendente */
+.acard-pending {
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(44,43,40,0.06), 0 0 0 1px rgba(44,43,40,0.04);
+}
+
+/* Estado: concluído */
+.acard-done {
+  background: #F4FAF3;
+  box-shadow: 0 1px 4px rgba(44,43,40,0.04), 0 0 0 1.5px rgba(122,155,118,0.22);
+}
+
+/* ── Linha superior: ícone + badge ───────────────────────────── */
+.acard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.acard-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.acard-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7A9B76;
+  background: rgba(122,155,118,0.14);
+  border-radius: 20px;
+  padding: 3px 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Texto ───────────────────────────────────────────────────── */
+.acard-label {
+  font-family: var(--font-body, 'Manrope', sans-serif);
+  font-size: 9px;
+  font-weight: 700;
+  color: #A5AA94;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 5px;
+}
+
+.acard-value {
+  font-family: var(--font-display, 'Antic Didone', Georgia, serif);
+  font-size: 21px;
+  line-height: 1.15;
+  margin: 0 0 10px;
+  flex: 1;
+}
+
+.acard-value-done {
+  color: #3A6A36;
+  font-weight: 400;
+}
+
+.acard-value-pending {
+  color: #C8C5BC;
+  font-weight: 400;
+}
+
+.acard-status-done {
+  font-family: var(--font-body, 'Manrope', sans-serif);
+  font-size: 10px;
+  font-weight: 600;
+  color: #7A9B76;
+  margin: 0;
+  margin-top: auto;
+}
+
+/* ── Botão CTA ───────────────────────────────────────────────── */
+.acard-cta {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  background: none;
+  border: 1.5px solid #EDE8E0;
+  border-radius: 22px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3E6770;
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--font-body, 'Manrope', sans-serif);
+  margin-top: auto;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.acard-cta:active {
+  background: #3E6770;
+  color: #fff;
+  border-color: #3E6770;
+}
+
+/* ── FAB: apenas ícones circulares, sem chips de texto ───────── */
+.fab-item {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: none;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #3E6770;
+  transition: transform 0.12s, background 0.12s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.fab-item:active { transform: scale(0.88); background: #F0F6F7; }
+
+/* FAB overlay: coluna só de ícones alinhados à direita */
+#fabOverlay > div {
+  gap: 12px !important;
+}
+
+/* ── field-label (forms) ─────────────────────────────────────── */
+.field-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7A7570;
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-body, 'Manrope', sans-serif);
+}
