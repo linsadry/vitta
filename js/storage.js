@@ -1,15 +1,7 @@
 /**
- * storage.js — Camada de persistência (Fitness OS / Painel de Evolução)
+ * storage.js — Camada de persistência (Vitta+)
  *
  * Backend: Supabase (projeto uxkjvbjlsbgmbalokisf), com RLS por auth.uid().
- * - Login com e-mail/senha (Supabase Auth) → sessão persiste no dispositivo.
- * - PIN local (4 dígitos) trava o acesso ao app mesmo já autenticado.
- * - Dados do dia/semana ficam em cache local (hidratado no init) para que
- *   as telas continuem lendo de forma síncrona, como antes.
- *
- * A anon key abaixo só permite acesso às linhas cujo user_id == auth.uid()
- * da sessão autenticada — protegida por RLS em todas as tabelas fitness_*,
- * daily_tracking, physical_metrics e lab_results.
  */
 
 const SUPABASE_URL      = 'https://uxkjvbjlsbgmbalokisf.supabase.co';
@@ -23,11 +15,12 @@ const Storage = (() => {
   let userId = null;
 
   const cache = {
-    settings: null,   // linha de fitness_settings
-    daily:    {},      // dateKey -> linha de daily_tracking
-    physical: [],      // linhas de physical_metrics, ordenadas por date asc
-    plans:    [],      // linhas de fitness_workout_plans (com .exercises[])
-    labs:     [],      // linhas de lab_results, ordenadas por date asc
+    settings:    null,
+    daily:       {},
+    physical:    [],
+    plans:       [],
+    labs:        [],
+    medications: [],   // apenas medicamentos ativos
   };
 
   const HYDRATE_DAYS = 120;
@@ -81,7 +74,6 @@ const Storage = (() => {
 
   // ── HIDRATAÇÃO DO CACHE ───────────────────────────────────────
   async function hydrate() {
-    // Settings (cria com defaults se ainda não existir)
     let { data: settings } = await sb.from('fitness_settings')
       .select('*').eq('user_id', userId).maybeSingle();
     if (!settings) {
@@ -91,19 +83,16 @@ const Storage = (() => {
     }
     cache.settings = settings;
 
-    // daily_tracking — últimos HYDRATE_DAYS dias
     const since = Utils.dateKey(new Date(Date.now() - HYDRATE_DAYS * 86400000));
     const { data: dailyRows } = await sb.from('daily_tracking')
       .select('*').eq('user_id', userId).gte('date', since);
     cache.daily = {};
     (dailyRows || []).forEach(r => { cache.daily[r.date] = r; });
 
-    // physical_metrics — histórico completo (poucos dados)
     const { data: physRows } = await sb.from('physical_metrics')
       .select('*').eq('user_id', userId).order('date', { ascending: true });
     cache.physical = physRows || [];
 
-    // fitness_workout_plans + exercícios (Fase 2 — Treinos estruturados)
     const { data: planRows } = await sb.from('fitness_workout_plans')
       .select('*, exercises:fitness_workout_exercises(*)')
       .eq('user_id', userId).eq('active', true).order('order_idx');
@@ -112,13 +101,17 @@ const Storage = (() => {
       exercises: (p.exercises || []).slice().sort((a, b) => (a.order_idx || 0) - (b.order_idx || 0)),
     }));
 
-    // lab_results — histórico completo (Fase 3 — Saúde Metabólica)
     const { data: labRows } = await sb.from('lab_results')
       .select('*').eq('user_id', userId).order('date', { ascending: true });
     cache.labs = labRows || [];
+
+    // Medicamentos ativos (cache para uso no dashboard/resumo)
+    const { data: medRows } = await sb.from('health_medications')
+      .select('*').eq('user_id', userId).eq('active', true).order('name');
+    cache.medications = medRows || [];
   }
 
-  // ── AUTH (Supabase Auth — sessão persiste no dispositivo) ─────
+  // ── AUTH ─────────────────────────────────────────────────────
   const auth = {
     async getSession() {
       const { data } = await sb.auth.getSession();
@@ -138,25 +131,18 @@ const Storage = (() => {
     },
   };
 
-  // ── PIN local (trava de tela, separada da sessão Supabase) ────
+  // ── PIN ───────────────────────────────────────────────────────
   const pin = {
-    hasPin() {
-      return !!(cache.settings && cache.settings.pin_hash);
-    },
-    isUnlocked() {
-      return sessionStorage.getItem('pinUnlocked') === '1';
-    },
-    lock() {
-      sessionStorage.removeItem('pinUnlocked');
-    },
+    hasPin() { return !!(cache.settings && cache.settings.pin_hash); },
+    isUnlocked() { return sessionStorage.getItem('pinUnlocked') === '1'; },
+    lock() { sessionStorage.removeItem('pinUnlocked'); },
     async setup(code) {
       const salt = crypto.randomUUID();
       const hash = await sha256Hex(salt + code);
       cache.settings.pin_hash = hash;
       cache.settings.pin_salt = salt;
       await sb.from('fitness_settings')
-        .update({ pin_hash: hash, pin_salt: salt })
-        .eq('user_id', userId);
+        .update({ pin_hash: hash, pin_salt: salt }).eq('user_id', userId);
       sessionStorage.setItem('pinUnlocked', '1');
     },
     async verify(code) {
@@ -168,16 +154,16 @@ const Storage = (() => {
     },
   };
 
-  // ── PREFERÊNCIAS / METAS (fitness_settings + daily_tracking) ──
+  // ── PREFERÊNCIAS / METAS ──────────────────────────────────────
   const PREF_SETTINGS_MAP = {
-    user_name:      'name',
-    goal_water_ml:  'water_goal_ml',
-    goal_kcal:      'kcal_goal',
-    goal_protein_g: 'protein_goal_g',
-    goal_steps:     'steps_goal',
-    goal_sleep_h:   'sleep_goal_h',
-    goal_strength_week: 'strength_weekly_goal',
-    goal_walk_week:     'walk_weekly_goal',
+    user_name:           'name',
+    goal_water_ml:       'water_goal_ml',
+    goal_kcal:           'kcal_goal',
+    goal_protein_g:      'protein_goal_g',
+    goal_steps:          'steps_goal',
+    goal_sleep_h:        'sleep_goal_h',
+    goal_strength_week:  'strength_weekly_goal',
+    goal_walk_week:      'walk_weekly_goal',
   };
   const PREF_DAILY_MAP = {
     sleep_hours_today: 'sleep_hours',
@@ -185,7 +171,7 @@ const Storage = (() => {
     sleep_wakeup:      'sleep_wake_time',
     steps_today:       'steps',
   };
-  const TIME_KEYS = new Set(['sleep_bedtime', 'sleep_wakeup']);
+  const TIME_KEYS    = new Set(['sleep_bedtime', 'sleep_wakeup']);
   const NUMERIC_KEYS = new Set(['goal_sleep_h', 'sleep_hours_today']);
 
   const prefs = {
@@ -212,7 +198,7 @@ const Storage = (() => {
         return;
       }
       if (PREF_DAILY_MAP[key]) {
-        const col = PREF_DAILY_MAP[key];
+        const col  = PREF_DAILY_MAP[key];
         const date = Utils.dateKey();
         getDaily(date)[col] = value;
         persistDaily(date);
@@ -220,7 +206,7 @@ const Storage = (() => {
     },
   };
 
-  // ── ÁGUA (daily_tracking.water_ml) ─────────────────────────────
+  // ── ÁGUA ──────────────────────────────────────────────────────
   const water = {
     getToday() {
       const d = getDaily(Utils.dateKey());
@@ -237,7 +223,7 @@ const Storage = (() => {
     },
   };
 
-  // ── HÁBITOS DO DIA (daily_tracking.habits jsonb) ───────────────
+  // ── HÁBITOS ───────────────────────────────────────────────────
   const EMPTY_HABITS = { sleep: false, water: false, workout: false, protein: false, meals: false };
   const habits = {
     getToday() {
@@ -257,7 +243,7 @@ const Storage = (() => {
     },
   };
 
-  // ── SCORE DE CONSISTÊNCIA (daily_tracking.consistency_score) ──
+  // ── SCORE ─────────────────────────────────────────────────────
   const score = {
     save(date, val) {
       getDaily(date).consistency_score = val;
@@ -267,23 +253,22 @@ const Storage = (() => {
       const v = cache.daily[date]?.consistency_score;
       return (v === undefined) ? null : v;
     },
-    getWeek() {
-      return Utils.lastNDays(7).map(d => ({ date: d, score: score.get(d) }));
-    },
+    getWeek()  { return Utils.lastNDays(7).map(d => ({ date: d, score: score.get(d) })); },
     getMonth() {
-      const prefix = Utils.dateKey().slice(0, 7); // 'YYYY-MM'
+      const prefix = Utils.dateKey().slice(0, 7);
       return Object.keys(cache.daily)
         .filter(d => d.startsWith(prefix))
         .map(d => ({ date: d, score: score.get(d) }));
     },
   };
 
-  // ── REFEIÇÕES (fitness_meals) ──────────────────────────────────
+  // ── REFEIÇÕES ─────────────────────────────────────────────────
   function rowToMeal(r) {
     return {
       id: r.id, date: r.date, name: r.name,
       foods: r.raw_text ? [r.raw_text] : [],
-      cal: Number(r.kcal) || 0, p: Number(r.protein_g) || 0, c: Number(r.carbs_g) || 0, f: Number(r.fat_g) || 0,
+      cal: Number(r.kcal) || 0, p: Number(r.protein_g) || 0,
+      c: Number(r.carbs_g) || 0, f: Number(r.fat_g) || 0,
       time: r.time, createdAt: r.created_at,
     };
   }
@@ -309,12 +294,10 @@ const Storage = (() => {
       if (meal.id) await sb.from('fitness_meals').update(row).eq('id', meal.id);
       else         await sb.from('fitness_meals').insert(row);
     },
-    async delete(id) {
-      await sb.from('fitness_meals').delete().eq('id', id);
-    },
+    async delete(id) { await sb.from('fitness_meals').delete().eq('id', id); },
   };
 
-  // ── TREINOS livres (fitness_workouts) ──────────────────────────
+  // ── TREINOS LIVRES ────────────────────────────────────────────
   function rowToWorkout(r) {
     return { id: r.id, date: r.date, tabType: r.tab_type, ...(r.data || {}) };
   }
@@ -338,12 +321,10 @@ const Storage = (() => {
       if (id) await sb.from('fitness_workouts').update(row).eq('id', id);
       else    await sb.from('fitness_workouts').insert(row);
     },
-    async delete(id) {
-      await sb.from('fitness_workouts').delete().eq('id', id);
-    },
+    async delete(id) { await sb.from('fitness_workouts').delete().eq('id', id); },
   };
 
-  // ── PESO (physical_metrics.weight) ─────────────────────────────
+  // ── PESO ──────────────────────────────────────────────────────
   const weight = {
     getHistory() {
       return cache.physical
@@ -354,12 +335,10 @@ const Storage = (() => {
       const h = weight.getHistory();
       return h.length ? h[h.length - 1].kg : null;
     },
-    addEntry(kg) {
-      upsertPhysical(Utils.dateKey(), { weight: kg });
-    },
+    addEntry(kg) { upsertPhysical(Utils.dateKey(), { weight: kg }); },
   };
 
-  // ── MEDIDAS CORPORAIS (physical_metrics) ───────────────────────
+  // ── MEDIDAS CORPORAIS ─────────────────────────────────────────
   const MEAS_MAP = { waist: 'waist_cm', hip: 'hip_cm', abdomen: 'abdomen_cm', arm: 'arm_right_cm', thigh: 'thigh_right_cm' };
   const measurements = {
     getLatest() {
@@ -384,12 +363,9 @@ const Storage = (() => {
     },
   };
 
-  // ── PLANOS DE TREINO ESTRUTURADOS (fitness_workout_plans/exercises) ──
-  // Fase 2 — Treino A/B/C/D. Cache hidratado no init; refresh() após CRUD.
+  // ── PLANOS DE TREINO ──────────────────────────────────────────
   const workoutPlans = {
-    getAll() {
-      return cache.plans;
-    },
+    getAll() { return cache.plans; },
     async refresh() {
       const { data, error } = await sb.from('fitness_workout_plans')
         .select('*, exercises:fitness_workout_exercises(*)')
@@ -414,7 +390,6 @@ const Storage = (() => {
     async remove(id) {
       const plan = cache.plans.find(p => p.id === id);
       const exerciseIds = (plan?.exercises || []).map(e => e.id);
-      // Preserva o histórico de séries — apenas desvincula plano/exercícios excluídos
       if (exerciseIds.length) {
         await sb.from('fitness_workout_logs').update({ exercise_id: null }).in('exercise_id', exerciseIds);
       }
@@ -434,9 +409,7 @@ const Storage = (() => {
     async add(planId, ex) {
       const plan = cache.plans.find(p => p.id === planId);
       const order_idx = plan ? plan.exercises.length : 0;
-      await sb.from('fitness_workout_exercises').insert({
-        plan_id: planId, user_id: userId, order_idx, ...ex,
-      });
+      await sb.from('fitness_workout_exercises').insert({ plan_id: planId, user_id: userId, order_idx, ...ex });
       return workoutPlans.refresh();
     },
     async update(id, fields) {
@@ -455,29 +428,20 @@ const Storage = (() => {
     },
   };
 
-  // ── SESSÕES / SÉRIES DE TREINO (fitness_workout_logs) ─────────────
+  // ── SÉRIES DE TREINO ──────────────────────────────────────────
   const workoutLogs = {
     async getByDate(date) {
       const { data, error } = await sb.from('fitness_workout_logs')
         .select('*').eq('user_id', userId).eq('date', date).order('created_at');
       return error ? [] : (data || []);
     },
-
     async logSet(entry) {
       const row = { user_id: userId, date: entry.date || Utils.dateKey(), ...entry };
       const { data } = await sb.from('fitness_workout_logs').insert(row).select().maybeSingle();
       return data;
     },
-
-    async updateSet(id, fields) {
-      await sb.from('fitness_workout_logs').update(fields).eq('id', id);
-    },
-
-    async deleteSet(id) {
-      await sb.from('fitness_workout_logs').delete().eq('id', id);
-    },
-
-    /** Datas (YYYY-MM-DD) com ao menos um set registrado, dentro do range. */
+    async updateSet(id, fields) { await sb.from('fitness_workout_logs').update(fields).eq('id', id); },
+    async deleteSet(id)         { await sb.from('fitness_workout_logs').delete().eq('id', id); },
     async daysInRange(start, end) {
       const { data, error } = await sb.from('fitness_workout_logs')
         .select('date').eq('user_id', userId).gte('date', start).lte('date', end);
@@ -485,8 +449,6 @@ const Storage = (() => {
       if (!error) (data || []).forEach(r => set.add(r.date));
       return set;
     },
-
-    /** Última data registrada por plan_id — usada para sugerir o próximo treino da rotação A/B/C/D. */
     async lastDateByPlan() {
       const { data, error } = await sb.from('fitness_workout_logs')
         .select('plan_id, date').eq('user_id', userId)
@@ -496,23 +458,14 @@ const Storage = (() => {
       if (!error) (data || []).forEach(r => { if (!map[r.plan_id]) map[r.plan_id] = r.date; });
       return map;
     },
-
-    /**
-     * Histórico de séries por exercício, agrupado por data — usado no
-     * gráfico de progressão de carga (ex.: Leg Press semana 1→2→3).
-     * Retorna [{ date, sets:[{reps,load,set_number}], maxLoad, totalVolume }]
-     * ordenado por data ascendente, limitado às últimas `limit` sessões.
-     */
     async exerciseHistory(exerciseId, limit = 12) {
       const { data, error } = await sb.from('fitness_workout_logs')
         .select('date, reps, load, set_number')
         .eq('user_id', userId).eq('exercise_id', exerciseId)
         .order('date', { ascending: false }).limit(300);
       if (error || !data) return [];
-
       const byDate = {};
       data.forEach(r => { (byDate[r.date] ||= []).push(r); });
-
       return Object.entries(byDate)
         .map(([date, sets]) => ({
           date,
@@ -523,18 +476,12 @@ const Storage = (() => {
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-limit);
     },
-    /** Volume total (Σ reps×carga) registrado no período (todas as sessões/exercícios). */
     async volumeInRange(start, end) {
       const { data, error } = await sb.from('fitness_workout_logs')
         .select('reps, load').eq('user_id', userId).gte('date', start).lte('date', end);
       if (error || !data) return 0;
       return data.reduce((acc, r) => acc + (Number(r.reps) || 0) * (Number(r.load) || 0), 0);
     },
-
-    /**
-     * Substitui todas as séries de um exercício numa data (remove + insere).
-     * `sets`: [{ reps, load, notes? }] — apenas linhas com `reps` preenchido são gravadas.
-     */
     async replaceForExercise(date, exerciseId, sets, planId, planName, exerciseName) {
       await sb.from('fitness_workout_logs').delete()
         .eq('user_id', userId).eq('date', date).eq('exercise_id', exerciseId);
@@ -549,6 +496,7 @@ const Storage = (() => {
       return rows;
     },
   };
+
   const training = {
     async daysInRange(start, end) {
       const [freeRes, logRes] = await Promise.all([
@@ -562,20 +510,15 @@ const Storage = (() => {
     },
   };
 
-  // ── EXAMES LABORATORIAIS (lab_results) ─────────────────────────────
-  // Fase 3 — Painel de Saúde Metabólica. Cache hidratado no init.
+  // ── EXAMES LABORATORIAIS ──────────────────────────────────────
   const labs = {
-    getAll() {
-      return cache.labs;
-    },
+    getAll()  { return cache.labs; },
     async refresh() {
       const { data, error } = await sb.from('lab_results')
         .select('*').eq('user_id', userId).order('date', { ascending: true });
       if (!error) cache.labs = data || [];
       return cache.labs;
     },
-
-    /** { [markerKey]: {value,date} } com o valor mais recente não-nulo (inclui custom:<nome>). */
     getLatest() {
       const out = {};
       for (const row of cache.labs) {
@@ -592,15 +535,11 @@ const Storage = (() => {
       }
       return out;
     },
-
-    /** Histórico [{date,value}] de um marcador do catálogo, ordenado por data. */
     getHistory(key) {
       return cache.labs
         .filter(r => r[key] !== null && r[key] !== undefined)
         .map(r => ({ date: r.date, value: Number(r[key]) }));
     },
-
-    /** Histórico de um marcador personalizado (custom), por nome. */
     getCustomHistory(name) {
       const out = [];
       for (const row of cache.labs) {
@@ -612,8 +551,6 @@ const Storage = (() => {
       }
       return out;
     },
-
-    /** Nomes de todos os marcadores personalizados já registrados. */
     customMarkerNames() {
       const set = new Set();
       cache.labs.forEach(row => {
@@ -622,7 +559,6 @@ const Storage = (() => {
       });
       return [...set];
     },
-
     async add(row) {
       const { id, ...rest } = row;
       const payload = { user_id: userId, date: rest.date || Utils.dateKey(), category: rest.category || 'Geral', ...rest };
@@ -630,14 +566,171 @@ const Storage = (() => {
       else    await sb.from('lab_results').insert(payload);
       return labs.refresh();
     },
-
     async remove(id) {
       await sb.from('lab_results').delete().eq('id', id);
       return labs.refresh();
     },
   };
 
-  // ── LIMPAR DADOS (mantém login/PIN, apaga registros do app) ────
+  // ══════════════════════════════════════════════════════════════
+  // FASE 4 — MÓDULOS DE SAÚDE
+  // ══════════════════════════════════════════════════════════════
+
+  // ── CARDIO (cardio_logs) ──────────────────────────────────────
+  const cardio = {
+    async add(entry) {
+      const row = {
+        user_id:      userId,
+        date:         entry.date || Utils.dateKey(),
+        type:         entry.type || 'Caminhada',
+        duration_min: entry.duration_min || null,
+        distance_km:  entry.distance_km  || null,
+        intensity:    entry.intensity    || null,
+        notes:        entry.notes        || null,
+      };
+      const { data } = await sb.from('cardio_logs').insert(row).select().maybeSingle();
+      return data;
+    },
+    async getByDate(date) {
+      const { data, error } = await sb.from('cardio_logs')
+        .select('*').eq('user_id', userId).eq('date', date).order('created_at');
+      return error ? [] : (data || []);
+    },
+    async daysInRange(start, end) {
+      const { data, error } = await sb.from('cardio_logs')
+        .select('date').eq('user_id', userId).gte('date', start).lte('date', end);
+      const set = new Set();
+      if (!error) (data || []).forEach(r => set.add(r.date));
+      return set;
+    },
+    async getWeekStats() {
+      const days  = Utils.lastNDays(7);
+      const start = days[0];
+      const end   = days[days.length - 1];
+      const { data, error } = await sb.from('cardio_logs')
+        .select('*').eq('user_id', userId).gte('date', start).lte('date', end).order('date');
+      if (error) return { days: new Set(), totalMin: 0, totalKm: 0, logs: [] };
+      const logs = data || [];
+      return {
+        days:     new Set(logs.map(r => r.date)),
+        totalMin: logs.reduce((a, r) => a + (Number(r.duration_min) || 0), 0),
+        totalKm:  logs.reduce((a, r) => a + (Number(r.distance_km)  || 0), 0),
+        logs,
+      };
+    },
+    async delete(id) { await sb.from('cardio_logs').delete().eq('id', id); },
+  };
+
+  // ── CONSULTAS MÉDICAS (health_consultations) ──────────────────
+  const consultations = {
+    async getAll() {
+      const { data, error } = await sb.from('health_consultations')
+        .select('*').eq('user_id', userId).order('date', { ascending: false });
+      return error ? [] : (data || []);
+    },
+    async getNext() {
+      const today = Utils.dateKey();
+      const { data } = await sb.from('health_consultations')
+        .select('*').eq('user_id', userId).gte('date', today)
+        .order('date', { ascending: true }).limit(1).maybeSingle();
+      return data || null;
+    },
+    async add(entry) {
+      const row = { user_id: userId, ...entry };
+      const { data } = await sb.from('health_consultations').insert(row).select().maybeSingle();
+      return data;
+    },
+    async update(id, fields) {
+      await sb.from('health_consultations').update(fields).eq('id', id);
+    },
+    async remove(id) { await sb.from('health_consultations').delete().eq('id', id); },
+  };
+
+  // ── MEDICAMENTOS (health_medications) ─────────────────────────
+  const medications = {
+    getActive() { return cache.medications; },
+    async getAll() {
+      const { data, error } = await sb.from('health_medications')
+        .select('*').eq('user_id', userId).order('active', { ascending: false }).order('name');
+      return error ? [] : (data || []);
+    },
+    async add(entry) {
+      const row = { user_id: userId, active: true, ...entry };
+      const { data } = await sb.from('health_medications').insert(row).select().maybeSingle();
+      if (data) {
+        cache.medications = [...cache.medications, data]
+          .filter(m => m.active)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      }
+      return data;
+    },
+    async update(id, fields) {
+      await sb.from('health_medications').update(fields).eq('id', id);
+      // Refresh active cache
+      const { data } = await sb.from('health_medications')
+        .select('*').eq('user_id', userId).eq('active', true).order('name');
+      cache.medications = data || [];
+    },
+    async remove(id) {
+      await sb.from('health_medications').delete().eq('id', id);
+      cache.medications = cache.medications.filter(m => m.id !== id);
+    },
+  };
+
+  // ── EVENTOS DE SAÚDE (health_events) ─────────────────────────
+  const healthEvents = {
+    async getAll() {
+      const { data, error } = await sb.from('health_events')
+        .select('*').eq('user_id', userId).order('date', { ascending: false });
+      return error ? [] : (data || []);
+    },
+    async add(entry) {
+      const row = { user_id: userId, date: entry.date || Utils.dateKey(), ...entry };
+      const { data } = await sb.from('health_events').insert(row).select().maybeSingle();
+      return data;
+    },
+    async remove(id) { await sb.from('health_events').delete().eq('id', id); },
+  };
+
+  // ── CICLO / SAÚDE FEMININA (cycle_entries) ────────────────────
+  const cycleEntries = {
+    async getAll() {
+      const { data, error } = await sb.from('cycle_entries')
+        .select('*').eq('user_id', userId).order('date', { ascending: false });
+      return error ? [] : (data || []);
+    },
+    async getByType(type) {
+      const { data, error } = await sb.from('cycle_entries')
+        .select('*').eq('user_id', userId).eq('type', type).order('date', { ascending: true });
+      return error ? [] : (data || []);
+    },
+    async add(entry) {
+      const row = { user_id: userId, date: entry.date || Utils.dateKey(), ...entry };
+      const { data } = await sb.from('cycle_entries').insert(row).select().maybeSingle();
+      return data;
+    },
+    async remove(id) { await sb.from('cycle_entries').delete().eq('id', id); },
+  };
+
+  // ── FERTILIDADE (fertility_events) ───────────────────────────
+  const fertilityEvents = {
+    async getAll() {
+      const { data, error } = await sb.from('fertility_events')
+        .select('*').eq('user_id', userId).order('date', { ascending: false });
+      return error ? [] : (data || []);
+    },
+    async add(entry) {
+      const row = { user_id: userId, date: entry.date || Utils.dateKey(), ...entry };
+      const { data } = await sb.from('fertility_events').insert(row).select().maybeSingle();
+      return data;
+    },
+    async update(id, fields) {
+      await sb.from('fertility_events').update(fields).eq('id', id);
+    },
+    async remove(id) { await sb.from('fertility_events').delete().eq('id', id); },
+  };
+
+  // ── LIMPAR DADOS ──────────────────────────────────────────────
   async function clearAll() {
     await Promise.all([
       sb.from('fitness_meals').delete().eq('user_id', userId),
@@ -646,13 +739,20 @@ const Storage = (() => {
       sb.from('lab_results').delete().eq('user_id', userId),
       sb.from('daily_tracking').delete().eq('user_id', userId),
       sb.from('physical_metrics').delete().eq('user_id', userId),
+      sb.from('cardio_logs').delete().eq('user_id', userId),
+      sb.from('health_consultations').delete().eq('user_id', userId),
+      sb.from('health_medications').delete().eq('user_id', userId),
+      sb.from('health_events').delete().eq('user_id', userId),
+      sb.from('cycle_entries').delete().eq('user_id', userId),
+      sb.from('fertility_events').delete().eq('user_id', userId),
     ]);
-    cache.daily = {};
-    cache.physical = [];
-    cache.labs = [];
+    cache.daily       = {};
+    cache.physical    = [];
+    cache.labs        = [];
+    cache.medications = [];
   }
 
-  // ── INIT ────────────────────────────────────────────────────
+  // ── INIT ──────────────────────────────────────────────────────
   async function init() {
     const session = await auth.getSession();
     if (!session) return false;
@@ -666,6 +766,8 @@ const Storage = (() => {
     auth, pin, init,
     prefs, water, habits, score, meals, workouts, weight, measurements,
     workoutPlans, workoutExercises, workoutLogs, training, labs,
+    // Fase 4
+    cardio, consultations, medications, healthEvents, cycleEntries, fertilityEvents,
     clearAll,
   };
 })();
