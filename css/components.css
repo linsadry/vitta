@@ -122,16 +122,17 @@ body {
 /* ── CARDS ───────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
-  border-radius: var(--r-lg);
-  padding: var(--space-lg);
-  margin-bottom: var(--space-md);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(44,43,40,0.07), 0 0 0 1px rgba(44,43,40,0.04);
 }
 
 .card-alt {
   background: var(--bg-card-alt);
-  border-radius: var(--r-lg);
-  padding: var(--space-lg);
-  margin-bottom: var(--space-md);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 10px;
 }
 
 /* ── TYPOGRAPHY ──────────────────────────────────────────────── */
@@ -158,15 +159,15 @@ body {
 
 /* ── SECTION TITLE (separadores "Ações de Hoje" / "Evolução da Semana") ── */
 .section-title {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-inklight);
   letter-spacing: 0.01em;
-  margin: 22px 0 10px;
+  margin: 24px 0 10px;
 }
 
-.section-title-first { margin-top: 4px; }
+.section-title-first { margin-top: 6px; }
 
 .caps {
   font-size: 10px;
@@ -398,7 +399,7 @@ body {
 }
 
 .chip-on  { background: var(--color-health); color: #fff; }
-.chip-off { background: var(--bg-card); color: var(--color-inkfaint); }
+.chip-off { background: rgba(0,0,0,0.05); color: var(--color-inkfaint); }
 
 /* ── EXERCISE ROW ────────────────────────────────────────────── */
 .exrow {
@@ -559,14 +560,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(62,103,112,0.45);
+  box-shadow: 0 4px 18px rgba(62,103,112,0.5);
   z-index: 100;
   transition: transform 0.15s, background 0.2s;
   cursor: pointer;
 }
 
 .fab.fab-open { background: var(--color-ink); }
-.fab:active { transform: scale(0.94); }
+.fab:active { transform: scale(0.93); }
 
 /* ── BOTTOM NAV (mobile) / SIDEBAR (desktop) ────────────────────── */
 .nav {
@@ -824,58 +825,374 @@ body {
   }
 }
 
-/* ── FASE 4: NOVOS COMPONENTES ───────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   VITTA+ FASE 4 — COMPONENTES PREMIUM
+   ══════════════════════════════════════════════════════════════ */
 
-/* Field label (forms e modais) */
+/* ── Field label ─────────────────────────────────────────────── */
 .field-label {
-  font-size: 11px;
-  color: #7A7570;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-inkfaint);
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
 }
 
-/* FAB Speed Dial — itens */
+/* ── SEMANA: barras de evolução ──────────────────────────────── */
+/* Grid: dot | label | bar | count */
+.wevo-row {
+  display: grid;
+  grid-template-columns: 7px 80px 1fr 38px;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 9px;
+}
+.wevo-row:last-child { margin-bottom: 0; }
+
+.wevo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wevo-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.wevo-track {
+  height: 6px;
+  background: #EDE8E0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.wevo-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wevo-count {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── AÇÕES DE HOJE: linhas compactas ─────────────────────────── */
+/* Grid: icon | content | chevron */
+.act-list { padding: 0; }
+
+.act-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 28px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s;
+}
+.act-row:last-child { border-bottom: none; padding-bottom: 4px; }
+.act-row:active { opacity: 0.65; }
+
+.act-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.act-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.act-sub {
+  font-size: 11px;
+  color: var(--color-sage);
+  margin: 1px 0 0;
+}
+
+.act-sub-done {
+  font-size: 11px;
+  color: var(--color-health-green);
+  font-weight: 500;
+  margin: 1px 0 0;
+}
+
+.act-chev {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #C8C5BC;
+  flex-shrink: 0;
+}
+
+/* ── MINI STATS: strip horizontal ─────────────────────────────── */
+.mini-stat {
+  flex-shrink: 0;
+  min-width: 96px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 14px 10px;
+  box-shadow: 0 1px 4px rgba(44,43,40,0.07), 0 0 0 1px rgba(44,43,40,0.04);
+}
+
+.mini-stat-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-sage);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  margin: 0 0 5px;
+}
+
+.mini-stat-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.1;
+  margin: 0 0 2px;
+}
+
+.mini-stat-sub {
+  font-size: 9px;
+  color: var(--color-sage);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── EXERCISE CARD (workout overview) ────────────────────────── */
+.ex-card {
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 14px 0;
+}
+.ex-card:last-child { border-bottom: none; }
+
+.ex-card-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ex-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.ex-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.ex-stat-box {
+  background: var(--bg-card-alt);
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.ex-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-sage);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin: 0 0 3px;
+}
+
+.ex-stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0;
+  line-height: 1;
+}
+
+/* ── EXECUTE MODE: série inputs ──────────────────────────────── */
+.set-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.set-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-sage);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ── HEADER DA TELA ──────────────────────────────────────────── */
+.dash-header {
+  padding: 4px 0 14px;
+}
+.dash-date {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-sage);
+  margin: 0 0 2px;
+  text-transform: capitalize;
+}
+.dash-greeting {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0;
+  line-height: 1.15;
+}
+
+/* ── CAPSULE LABEL (section eyebrow) ────────────────────────── */
+.capsule-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--color-health);
+  margin: 0 0 12px;
+}
+
+/* ── CARDIO STATS ────────────────────────────────────────────── */
+.cardio-stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.cardio-stat-item {
+  text-align: center;
+  background: var(--bg-card-alt);
+  border-radius: 12px;
+  padding: 12px 8px;
+}
+
+.cardio-stat-val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-health);
+  line-height: 1;
+  margin: 0 0 3px;
+}
+
+.cardio-stat-lbl {
+  font-size: 10px;
+  color: var(--color-sage);
+  margin: 0;
+}
+
+/* ── FAB SPEED DIAL ──────────────────────────────────────────── */
 .fab-item {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: #fff;
   border: none;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 14px rgba(0,0,0,0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #2C2B28;
-  transition: transform 0.15s, background 0.15s;
+  color: var(--color-ink);
+  transition: transform 0.12s;
   flex-shrink: 0;
 }
+.fab-item:active { transform: scale(0.91); }
 
-.fab-item:active {
-  transform: scale(0.92);
-  background: #F4F1EC;
-}
-
-/* FAB Speed Dial — labels */
 .fab-label {
-  background: #2C2B28;
-  color: #F4F1EC;
+  background: var(--color-ink);
+  color: var(--bg-card-alt);
   padding: 6px 14px;
   border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   white-space: nowrap;
   font-family: var(--font-body);
 }
 
-/* FAB icon toggle (+ / ×) */
 .fab-open .fab-icon-plus  { display: none !important; }
 .fab-open .fab-icon-close { display: block !important; }
 
-/* Evolution strip (cards horizontais) */
-#evolutionStrip::-webkit-scrollbar { display: none; }
+/* ── NUTRI DE HOJE (compacto) ────────────────────────────────── */
+.nutri-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 12px;
+}
 
-/* Section title override para tela Saúde */
-#s-health .screen-title { color: var(--color-health); }
+.nutri-macro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.nutri-macro-item { text-align: center; }
+
+.nutri-macro-val {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 4px;
+}
+
+.nutri-macro-bar {
+  height: 4px;
+  background: #EDE8E0;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.nutri-macro-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.nutri-macro-name {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--color-sage);
+  margin: 0;
+}
+
+/* ── DESKTOP override ────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .fab { right: 32px; bottom: 32px; }
+  #evolutionStrip { scrollbar-width: none; }
+}
+#evolutionStrip::-webkit-scrollbar { display: none; }
