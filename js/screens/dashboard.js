@@ -319,6 +319,12 @@ const ScreenDashboard = (() => {
           case 'cardio':    openCardioModal();  break;
           case 'nutrition': Router.go('nutri'); break;
           case 'health':    Router.go('health'); break;
+          case 'ciclo':
+            Router.go('health');
+            setTimeout(() => { if (typeof ScreenHealth !== 'undefined') ScreenHealth.openTab('ciclo'); }, 80);
+            break;
+          case 'exames':    Router.go('prog');  break;
+          case 'diary':     Router.go('diary'); break;
           case 'peso':      openWeightModal();  break;
         }
       });

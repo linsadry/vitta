@@ -29,6 +29,8 @@ const ScreenHealth = (() => {
     const items = [
       { id: 'consultas',    label: 'Consultas' },
       { id: 'medicamentos', label: 'Medicamentos' },
+      { id: 'ciclo',        label: '🌸 Ciclo' },
+      { id: 'fiv',          label: '✨ Fertilidade' },
       { id: 'eventos',      label: 'Eventos' },
       { id: 'resumo',       label: 'Resumo' },
     ];
@@ -325,6 +327,147 @@ const ScreenHealth = (() => {
     });
   }
 
+  // ── openTab: permite navegação externa para aba específica ─────
+  function openTab(tab) {
+    activeTab = tab;
+    render();
+  }
+
+  // ── RENDER CICLO ──────────────────────────────────────────────
+  async function renderCiclo() {
+    const entries = await Storage.cycleEntries.getAll();
+    const today = Utils.dateKey();
+    const typeLabels = {
+      menstruation_start: '🌸 Início da menstruação',
+      menstruation_end:   '🌸 Fim da menstruação',
+      symptom:            '⚡ Sintoma',
+      mood:               '💭 Humor',
+      energy:             '✨ Energia',
+      ovulation:          '🌼 Ovulação estimada',
+    };
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <p class="caps" style="color:#D68A86;margin-bottom:12px">Registrar</p>
+        <label class="field-label">Tipo</label>
+        <select class="form-input" id="cycleType" style="margin-bottom:10px">
+          <option value="menstruation_start">Início da menstruação</option>
+          <option value="menstruation_end">Fim da menstruação</option>
+          <option value="symptom">Sintoma</option>
+          <option value="mood">Humor</option>
+          <option value="energy">Energia</option>
+          <option value="ovulation">Ovulação estimada</option>
+        </select>
+        <label class="field-label">Data</label>
+        <input class="form-input" id="cycleDate" type="date" value="${today}" style="margin-bottom:10px">
+        <label class="field-label">Valor / Notas</label>
+        <input class="form-input" id="cycleValue" placeholder="Ex: fluxo intenso, cólica leve..." style="margin-bottom:12px">
+        <button class="mainbtn" id="saveCycleBtn" style="background:#D68A86">Salvar registro</button>
+      </div>
+      ${entries.length ? `
+        <p class="caps" style="margin-bottom:8px">Histórico</p>
+        ${entries.slice(0, 15).map(e => `
+          <div class="card" style="margin-bottom:8px;padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="flex:1">
+                <p style="font-size:13px;font-weight:700;color:#3B3532;margin:0 0 2px">${typeLabels[e.type] || esc(e.type)}</p>
+                ${e.value ? `<p style="font-size:11px;color:#7A726E;margin:0">${esc(e.value)}</p>` : ''}
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                <span style="font-size:10px;color:#B5ADA8">${fmtDate(e.date)}</span>
+                <button data-del-cycle="${e.id}" style="background:none;border:none;color:#E8B6B1;font-size:18px;cursor:pointer;padding:0">×</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      ` : `<div class="empty"><div class="eico">🌸</div><p class="etxt">Nenhum registro de ciclo ainda.<br>Comece registrando o início da sua menstruação.</p></div>`}`;
+  }
+
+  async function bindCiclo() {
+    document.getElementById('saveCycleBtn')?.addEventListener('click', async () => {
+      const type  = document.getElementById('cycleType').value;
+      const date  = document.getElementById('cycleDate').value;
+      const value = document.getElementById('cycleValue').value.trim() || null;
+      if (!date) return;
+      await Storage.cycleEntries.add({ date, type, value });
+      render();
+    });
+    document.querySelectorAll('[data-del-cycle]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remover este registro?')) return;
+        await Storage.cycleEntries.remove(btn.dataset.delCycle);
+        render();
+      });
+    });
+  }
+
+  // ── RENDER FIV / FERTILIDADE ──────────────────────────────────
+  async function renderFIV() {
+    const events = await Storage.fertilityEvents.getAll();
+    const today  = Utils.dateKey();
+    const typeLabels = {
+      consultation:  '🩺 Consulta',
+      procedure:     '⚕️ Procedimento',
+      transfer:      '🌱 Transferência',
+      result:        '📋 Resultado',
+      exam:          '🔬 Exame',
+      medication:    '💊 Medicação',
+    };
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <p class="caps" style="color:#C8B5D8;margin-bottom:12px">Registrar evento de fertilidade</p>
+        <label class="field-label">Tipo</label>
+        <select class="form-input" id="fivType" style="margin-bottom:10px">
+          <option value="consultation">Consulta</option>
+          <option value="procedure">Procedimento</option>
+          <option value="transfer">Transferência de embrião</option>
+          <option value="exam">Exame</option>
+          <option value="medication">Medicação</option>
+          <option value="result">Resultado</option>
+        </select>
+        <label class="field-label">Data</label>
+        <input class="form-input" id="fivDate" type="date" value="${today}" style="margin-bottom:10px">
+        <label class="field-label">Título / Notas</label>
+        <input class="form-input" id="fivTitle" placeholder="Ex: Beta-hCG, coleta de óvulos..." style="margin-bottom:10px">
+        <textarea class="form-input" id="fivNotes" rows="2" placeholder="Observações..." style="resize:vertical;margin-bottom:12px"></textarea>
+        <button class="mainbtn" id="saveFivBtn" style="background:#C8B5D8">Salvar evento</button>
+      </div>
+      ${events.length ? `
+        <p class="caps" style="margin-bottom:8px">Linha do tempo</p>
+        ${events.slice(0, 20).map(e => `
+          <div class="card" style="margin-bottom:8px;padding:12px 14px;border-left:3px solid #C8B5D8">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div style="flex:1">
+                <p style="font-size:12px;font-weight:700;color:#C8B5D8;margin:0 0 2px">${typeLabels[e.type] || esc(e.type)}</p>
+                ${e.title ? `<p style="font-size:13px;font-weight:600;color:#3B3532;margin:0 0 2px">${esc(e.title)}</p>` : ''}
+                ${e.notes ? `<p style="font-size:11px;color:#7A726E;margin:0">${esc(e.notes)}</p>` : ''}
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                <span style="font-size:10px;color:#B5ADA8">${fmtDate(e.date)}</span>
+                <button data-del-fiv="${e.id}" style="background:none;border:none;color:#C8B5D8;font-size:18px;cursor:pointer;padding:0">×</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      ` : `<div class="empty"><div class="eico">✨</div><p class="etxt">Nenhum evento de fertilidade registrado.<br>Acompanhe sua jornada de FIV aqui.</p></div>`}`;
+  }
+
+  async function bindFIV() {
+    document.getElementById('saveFivBtn')?.addEventListener('click', async () => {
+      const type  = document.getElementById('fivType').value;
+      const date  = document.getElementById('fivDate').value;
+      const title = document.getElementById('fivTitle').value.trim() || null;
+      const notes = document.getElementById('fivNotes').value.trim() || null;
+      if (!date) return;
+      await Storage.fertilityEvents.add({ date, type, title, notes });
+      render();
+    });
+    document.querySelectorAll('[data-del-fiv]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remover este evento?')) return;
+        await Storage.fertilityEvents.remove(btn.dataset.delFiv);
+        render();
+      });
+    });
+  }
+
   // ── RENDER PRINCIPAL ──────────────────────────────────────────
 
   async function render() {
@@ -360,6 +503,14 @@ const ScreenHealth = (() => {
         case 'eventos':
           body.innerHTML = await renderEventos();
           await bindEventos();
+          break;
+        case 'ciclo':
+          body.innerHTML = await renderCiclo();
+          await bindCiclo();
+          break;
+        case 'fiv':
+          body.innerHTML = await renderFIV();
+          await bindFIV();
           break;
         case 'resumo':
           body.innerHTML = await renderResumo();
