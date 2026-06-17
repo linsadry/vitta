@@ -1,5 +1,29 @@
-const CACHE_NAME = 'vitta-v10';
-const SHELL = ['/','/index.html','/css/reset.css?v=20260617a','/css/tokens.css?v=20260617a','/css/components.css?v=20260617a','/css/screens.css?v=20260617a','/css/animations.css?v=20260617a','/js/storage.js?v=20260617a','/js/data.js?v=20260617a','/js/utils.js?v=20260617a','/js/charts.js?v=20260617a','/js/router.js?v=20260617a','/js/app.js?v=20260617a','/js/screens/dashboard.js?v=20260617a','/js/screens/hydration.js?v=20260617a','/js/screens/nutrition.js?v=20260617a','/js/screens/workout.js?v=20260617a','/js/screens/progress.js?v=20260617a','/js/screens/health.js?v=20260617a','/js/screens/ai.js?v=20260617a','/js/screens/config.js?v=20260617a','/js/screens/auth.js?v=20260617a','/js/sw-register.js?v=20260617a'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==location.origin&&!u.hostname.includes('fonts.g'))return;e.respondWith(fetch(e.request).then(r=>{if(r&&r.status===200&&r.type!=='opaque'){const c=r.clone();caches.open(CACHE_NAME).then(ca=>ca.put(e.request,c))}return r}).catch(()=>caches.match(e.request).then(c=>{if(c)return c;if(e.request.destination==='document')return caches.match('/index.html')})))});
+const CACHE = 'vitta-v12';
+const SHELL = ['/','index.html'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.origin !== location.origin && !url.hostname.includes('fonts.g')) return;
+  e.respondWith(
+    fetch(e.request)
+      .then(r => {
+        if (r && r.status === 200 && r.type !== 'opaque') {
+          caches.open(CACHE).then(c => c.put(e.request, r.clone()));
+        }
+        return r;
+      })
+      .catch(() => caches.match(e.request)
+        .then(c => c || (e.request.destination === 'document' ? caches.match('/index.html') : null))
+      )
+  );
+});
