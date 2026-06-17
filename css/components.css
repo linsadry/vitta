@@ -61,8 +61,10 @@ body {
 .overlay {
   position: fixed; inset: 0; z-index: 200;
   background: #F7F3EF;
-  display: flex; align-items: center; justify-content: center;
+  display: none;                         /* oculto por padrão */
+  align-items: center; justify-content: center;
 }
+.overlay.on { display: flex; }          /* visível quando .on ativo */
 .overlay-card {
   width: min(340px, 90vw);
   padding: 32px 24px;
