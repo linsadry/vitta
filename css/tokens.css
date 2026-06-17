@@ -1,50 +1,51 @@
-/* ── VITTA+ WELLNESS IDENTITY — Paleta Feminina Premium ─────── */
+/* ── VITTA+ TOKENS — Paleta Wellness Premium ──────────────────── */
 :root {
-  /* Nova Paleta */
-  --c-base:       #F9F6F2;   /* off-white quente */
-  --c-blush:      #E8B6B1;   /* rosa blush */
-  --c-rose:       #D38B87;   /* rosa queimado */
-  --c-lavender:   #CBB7D9;   /* lavanda suave */
-  --c-olive:      #AAB38C;   /* verde oliva suave */
-  --c-slate:      #7C9AA6;   /* azul acinzentado */
-  --c-gold:       #D7B37A;   /* dourado suave */
-  --c-ink:        #3C3530;   /* texto principal */
-  --c-ink-soft:   #7A6F6A;   /* texto secundário */
-  --c-ink-faint:  #B5ADA8;   /* texto fraco */
-  --c-white:      #FFFFFF;
+  /* ─── PALETA PRINCIPAL ─────────────────────────────────────── */
+  --c-rose-blush:  #D99A96;   /* rosa blush */
+  --c-rose:        #C98A86;   /* rosa queimado (cor principal) */
+  --c-rose-deep:   #B87470;   /* rosa hover */
+  --c-sage:        #AEB89A;   /* verde sálvia */
+  --c-olive:       #8C9672;   /* verde oliva */
+  --c-paper:       #F7F3EF;   /* bege papel */
+  --c-ivory:       #FCFAF7;   /* marfim */
+  --c-lavender:    #D9D4E8;   /* lavanda */
+  --c-slate:       #AFC6D9;   /* azul acinzentado */
+  --c-gold:        #D4B37A;   /* dourado suave */
+  --c-ink:         #433B37;   /* texto escuro */
+  --c-ink-soft:    #7A6E6A;   /* texto médio */
+  --c-ink-faint:   #B0A8A4;   /* texto fraco */
+  --c-white:       #FFFFFF;
 
-  /* Aliases semânticos */
-  --bg:           #F9F6F2;
-  --bg-card:      #FFFFFF;
-  --bg-card-soft: #FDF9F7;
-  --border:       rgba(60,53,48,0.08);
+  /* ─── CORES POR CATEGORIA ──────────────────────────────────── */
+  --clr-ciclo:     #C98A86;   /* rosa — Ciclo, FIV, Diário */
+  --clr-saude:     #AFC6D9;   /* azul — Saúde, Exames */
+  --clr-treinos:   #AEB89A;   /* sálvia — Treinos, Evolução */
+  --clr-nutri:     #8C9672;   /* oliva — Nutrição */
+  --clr-sono:      #D9D4E8;   /* lavanda — Sono */
+  --clr-agua:      #AFC6D9;   /* slate — Água */
+  --clr-eventos:   #D4B37A;   /* dourado — Eventos */
 
-  /* Nav colors por seção */
-  --nav-hoje:        #D38B87;
-  --nav-evolucao:    #AAB38C;
-  --nav-saude:       #CBB7D9;
-  --nav-treinos:     #D7B37A;
-  --nav-alimentacao: #7C9AA6;
-  --nav-agua:        #7C9AA6;
-  --nav-sono:        #9098A0;
-  --nav-ciclo:       #E8B6B1;
-  --nav-exames:      #B0A8C4;
-  --nav-ia:          #CBB7D9;
+  /* ─── BACKGROUNDS ────────────────────────────────────────────── */
+  --bg:            #F7F3EF;
+  --bg-card:       #FFFFFF;
+  --bg-card-soft:  #FDFAF8;
+  --border:        rgba(67,59,55,0.06);
 
-  /* Tipografia — editorial wellness */
-  --font-display: 'Cormorant Garamond', 'DM Serif Display', Georgia, serif;
+  /* ─── TIPOGRAFIA ──────────────────────────────────────────────── */
+  --font-display: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   --font-body:    'Nunito', 'Inter', system-ui, sans-serif;
-  --font-script:  'Dancing Script', cursive;
+  --font-script:  'Parisienne', 'Dancing Script', cursive;
 
-  /* Espaçamento */
-  --sp-xs: 4px;   --sp-sm: 8px;   --sp-md: 12px;
-  --sp-lg: 16px;  --sp-xl: 20px;  --sp-2xl: 24px;
+  /* ─── ESPAÇAMENTO ────────────────────────────────────────────── */
+  --sp-xs:4px; --sp-sm:8px; --sp-md:12px;
+  --sp-lg:16px; --sp-xl:20px; --sp-2xl:24px;
 
-  /* Raios */
-  --r-sm: 8px;   --r-md: 14px;  --r-lg: 18px;
-  --r-xl: 22px;  --r-pill: 99px;
+  /* ─── RAIOS ─────────────────────────────────────────────────── */
+  --r-sm:8px; --r-md:14px; --r-lg:18px;
+  --r-xl:22px; --r-card:24px; --r-pill:99px;
 
-  /* Sombras */
-  --shadow-card: 0 2px 12px rgba(60,53,48,0.07), 0 0 0 1px rgba(60,53,48,0.04);
-  --shadow-hover: 0 4px 20px rgba(60,53,48,0.1);
+  /* ─── SOMBRAS (leves para performance) ──────────────────────── */
+  --shadow-xs:  0 1px 4px rgba(67,59,55,0.06);
+  --shadow-sm:  0 2px 8px rgba(67,59,55,0.08);
+  --shadow-md:  0 4px 16px rgba(67,59,55,0.09);
 }
