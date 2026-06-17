@@ -13,6 +13,9 @@ const Router = (() => {
     nutri:  's-nutri',
     hydro:  's-hydro',
     config: 's-config',
+    diary:  's-diary',
+    ciclo:  's-health',   // ciclo abre health com tab específica
+    exames: 's-prog',     // exames abre a tela de Evolução (labs)
   };
 
   // Telas que têm item na nav principal
@@ -65,6 +68,8 @@ const Router = (() => {
       nutri:  () => ScreenNutrition.render(),
       hydro:  () => ScreenHydration.render(),
       config: () => ScreenConfig.render(),
+      diary:  () => ScreenDiary.render(),
+      // ciclo e exames redirecionam via handleFabAction
     };
     if (renders[id]) renders[id]();
 
@@ -138,6 +143,12 @@ const Router = (() => {
       case 'progress': go('prog');    break;
       case 'health':   go('health');  break;
       case 'config':   go('config');  break;
+      case 'diary':    go('diary');   break;
+      case 'exames':   go('prog');    break;
+      case 'ciclo':
+        go('health');
+        setTimeout(() => { if (typeof ScreenHealth !== 'undefined') ScreenHealth.openTab('ciclo'); }, 80);
+        break;
       case 'sleep':
         ScreenDashboard.openSleepModal?.();
         break;
