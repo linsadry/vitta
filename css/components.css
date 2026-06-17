@@ -2247,3 +2247,93 @@ body, #app {
   color: var(--c-ink-soft); padding: 3px 8px;
   border-radius: var(--r-pill);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   VITTA+ — Textura de papel + Botanical watermarks
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── TEXTURA DE PAPEL — fundo aquarelado ─────────────────────── */
+body {
+  background-color: #FAF7F4;
+  /* Textura grain sutil via SVG noise inline */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 400px 400px;
+}
+
+#app .scroll {
+  background-color: #FAF7F4 !important;
+  background-image: inherit;
+}
+
+/* Overlay de textura sutil */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(232,182,177,0.05) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 85% 85%, rgba(200,181,216,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse 50% 40% at 50% 50%, rgba(168,177,139,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── FAIXAS BOTÂNICAS POR TELA ───────────────────────────────── */
+/* Cada tela terá uma faixa colorida aquarelada no topo */
+.page-strip {
+  width: calc(100% + 32px);
+  margin: -12px -16px 16px;
+  height: 6px;
+  border-radius: 0 0 8px 8px;
+}
+.page-strip-rose    { background: linear-gradient(90deg, rgba(214,138,134,0.6), rgba(232,182,177,0.3), rgba(215,179,122,0.4)); }
+.page-strip-lavender{ background: linear-gradient(90deg, rgba(200,181,216,0.6), rgba(168,177,139,0.3), rgba(200,181,216,0.4)); }
+.page-strip-olive   { background: linear-gradient(90deg, rgba(168,177,139,0.6), rgba(215,179,122,0.3), rgba(142,168,178,0.4)); }
+.page-strip-gold    { background: linear-gradient(90deg, rgba(215,179,122,0.6), rgba(214,138,134,0.3), rgba(168,177,139,0.4)); }
+
+/* ── BOTANICAL WATERMARK CLASS ───────────────────────────────── */
+.botanical-wm {
+  pointer-events: none;
+  position: absolute;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+/* ── SCREEN HEADER COM BOTANICAL ─────────────────────────────── */
+.screen-hdr-botanical {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+/* ── RODAPÉ BOTÂNICO (bottom of cards) ───────────────────────── */
+.card-botanical-footer {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+/* ── HERO COM BACKGROUND SUAVE ───────────────────────────────── */
+.hero {
+  background: linear-gradient(148deg, rgba(251,244,241,0.95) 0%, rgba(249,241,248,0.9) 55%, rgba(239,244,250,0.9) 100%);
+  /* Adicionar textura ao hero também */
+  background-image: linear-gradient(148deg, rgba(251,244,241,0.95) 0%, rgba(249,241,248,0.9) 55%, rgba(239,244,250,0.9) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ── CARDS COM PROFUNDIDADE EXTRA ────────────────────────────── */
+.card {
+  position: relative;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(4px);
+}
+
+/* ── HEALTH TABS: cor da aba Ciclo e FIV ─────────────────────── */
+.chip-on[data-health-tab="ciclo"] { background: #D68A86; }
+.chip-on[data-health-tab="fiv"]   { background: #C8B5D8; }
+
+/* ── DIARY MOOD BUTTON ───────────────────────────────────────── */
+.mood-btn { transition: background 0.15s, transform 0.1s; }
+.mood-btn:active { transform: scale(0.9); }
