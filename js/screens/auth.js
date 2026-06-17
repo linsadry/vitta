@@ -62,7 +62,7 @@ const ScreenAuth = (() => {
 
   function updateDots(n) {
     document.querySelectorAll('#pinDots .pin-dot').forEach((dot, i) => {
-      dot.classList.toggle('pin-dot-filled', i < n);
+      dot.classList.toggle('filled', i < n);
     });
   }
 
