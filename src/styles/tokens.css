@@ -1,0 +1,99 @@
+/* ─── VITTA+ DESIGN TOKENS ─────────────────────────────────── */
+
+:root {
+  /* Base surfaces */
+  --c-base-0: #FAF7F4;
+  --c-base-1: #F6F2EF;
+  --c-base-2: #EFE8E3;
+  --c-base-3: #E5DDD6;
+
+  /* Rose family */
+  --c-rose-faint: #F9F0EE;
+  --c-rose-light: #F0DDD9;
+  --c-rose: #D4A5A5;
+  --c-rose-mid: #C48E8E;
+  --c-rose-deep: #B07272;
+
+  /* Sage family */
+  --c-sage-faint: #EEF1EC;
+  --c-sage-light: #D6DED5;
+  --c-sage: #8A9E8C;
+  --c-sage-deep: #6B7D6C;
+
+  /* Lavender family */
+  --c-lavender-faint: #F2EFF6;
+  --c-lavender-light: #E2DAF0;
+  --c-lavender: #C4B8D4;
+
+  /* Warm gold */
+  --c-gold: #C9A96E;
+  --c-gold-light: #DEC898;
+  --c-gold-faint: #F0E8D6;
+
+  /* Text */
+  --c-text-900: #2E2520;
+  --c-text-700: #5C4E47;
+  --c-text-500: #8C7E78;
+  --c-text-300: #B8AEA9;
+  --c-text-100: #D8D2CE;
+
+  /* Semantic */
+  --c-bg: var(--c-base-0);
+  --c-surface: var(--c-base-1);
+  --c-surface-raised: #FFFFFF;
+  --c-border: rgba(62, 50, 44, 0.09);
+  --c-border-light: rgba(62, 50, 44, 0.05);
+
+  /* Typography */
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-editorial: 'Cormorant Garamond', 'Georgia', serif;
+  --font-ui: 'Inter', -apple-system, sans-serif;
+
+  /* Type scale */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 15px;
+  --text-md:   17px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  30px;
+  --text-3xl:  38px;
+
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-snug:  1.35;
+  --leading-base:  1.5;
+  --leading-loose: 1.7;
+
+  /* Spacing (4px base) */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* Border radius */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-2xl: 36px;
+  --r-full: 999px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(62, 50, 44, 0.05);
+  --shadow-sm: 0 2px 8px rgba(62, 50, 44, 0.07);
+  --shadow-md: 0 4px 16px rgba(62, 50, 44, 0.08);
+  --shadow-lg: 0 8px 32px rgba(62, 50, 44, 0.10);
+
+  /* Layout */
+  --nav-height: 68px;
+  --safe-bottom: env(safe-area-inset-bottom, 12px);
+  --page-pad-x: 20px;
+}
