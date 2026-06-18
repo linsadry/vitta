@@ -1,4 +1,4 @@
-const CACHE = 'vitta-v12';
+const CACHE = 'vitta-v13';
 const SHELL = ['/','index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
