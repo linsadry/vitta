@@ -48,4 +48,8 @@
   --shadow-xs:  0 1px 4px rgba(67,59,55,0.06);
   --shadow-sm:  0 2px 8px rgba(67,59,55,0.08);
   --shadow-md:  0 4px 16px rgba(67,59,55,0.09);
+
+  /* ─── COMPAT — variáveis antigas ainda usadas em screens.css ──── */
+  --nav-height:        88px;     /* altura da bottom nav + safe area */
+  --color-inkfaint:    #B0A8A4;  /* alias de --c-ink-faint */
 }
