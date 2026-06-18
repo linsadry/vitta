@@ -12,12 +12,12 @@
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Nunito:wght@400;600;700&family=Parisienne&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/reset.css?v=20260617e">
-  <link rel="stylesheet" href="css/tokens.css?v=20260617e">
-  <link rel="stylesheet" href="css/components.css?v=20260617e">
-  <link rel="stylesheet" href="css/screens.css?v=20260617e">
-  <link rel="stylesheet" href="css/animations.css?v=20260617e">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Nunito:wght@400;600;700&family=Parisienne&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/reset.css?v=20260617f">
+  <link rel="stylesheet" href="css/tokens.css?v=20260617f">
+  <link rel="stylesheet" href="css/components.css?v=20260617f">
+  <link rel="stylesheet" href="css/screens.css?v=20260617f">
+  <link rel="stylesheet" href="css/animations.css?v=20260617f">
 </head>
 <body>
 
@@ -33,12 +33,125 @@
   </div>
 </div>
 <div class="overlay" id="pinScreen">
-  <div class="overlay-card">
-    <h1 class="overlay-title" id="pinTitle">PIN</h1>
-    <p class="overlay-sub" id="pinSub"></p>
-    <div class="pin-dots" id="pinDots"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div>
+
+  <!-- Ilustração botânica (marca d'água 10-12% opacidade) -->
+  <div class="pin-botanical" aria-hidden="true">
+    <svg viewBox="0 0 280 440" fill="none" xmlns="http://www.w3.org/2000/svg" width="280" height="440">
+      <!-- Hastes principais -->
+      <path d="M130 440 C128 395 126 350 128 310 C130 272 136 235 142 195" stroke="#9A8878" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M105 440 C102 405 98 368 93 330 C88 295 82 260 74 228" stroke="#9A8878" stroke-width="1.1" stroke-linecap="round"/>
+      <path d="M158 440 C161 408 166 374 172 342 C178 310 186 278 195 250" stroke="#9A8878" stroke-width="1" stroke-linecap="round"/>
+      <!-- Ramo para flor pink -->
+      <path d="M142 195 C140 175 136 154 130 132 C124 110 116 90 112 70" stroke="#9A8878" stroke-width="1" stroke-linecap="round"/>
+      <!-- Ramo esquerdo (flor sálvia) -->
+      <path d="M93 310 C80 296 66 288 54 288" stroke="#9A8878" stroke-width="0.9" stroke-linecap="round"/>
+      <!-- Ramo direito -->
+      <path d="M172 305 C184 291 200 286 212 290" stroke="#9A8878" stroke-width="0.9" stroke-linecap="round"/>
+
+      <!-- Gramíneas/grama na base -->
+      <path d="M15 440 C12 408 8 375 5 342 C1 306 0 275 2 248" stroke="#AEB89A" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M42 440 C44 410 48 378 52 348 C57 315 62 288 66 264" stroke="#AEB89A" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M68 440 C72 415 78 388 84 362 C90 334 98 310 106 290" stroke="#AEB89A" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M195 440 C200 415 208 388 216 362 C224 334 234 310 242 290" stroke="#AEB89A" stroke-width="2" stroke-linecap="round"/>
+      <path d="M228 440 C236 418 246 393 254 368 C263 342 272 320 278 300" stroke="#AEB89A" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M255 440 C260 422 266 402 270 382 C276 358 280 338 278 318" stroke="#AEB89A" stroke-width="1.8" stroke-linecap="round"/>
+
+      <!-- Pincelada rosa (accent bottom right) -->
+      <path d="M175 440 C205 418 232 400 254 382 C266 372 274 364 278 355" stroke="#E8B6B1" stroke-width="11" stroke-linecap="round" opacity="0.55"/>
+
+      <!-- FLOR PINK GRANDE (centro-superior) -->
+      <g transform="translate(114,65)">
+        <!-- Pétalas traseiras -->
+        <path d="M0 0 C-14 -24 -20 -58 -9 -84 C-3 -96 10 -92 16 -76 C22 -60 18 -32 0 0Z" fill="#F4C9C4" fill-opacity="0.72"/>
+        <path d="M0 0 C24 -16 56 -20 72 -8 C80 0 78 14 66 20 C53 28 30 22 0 0Z" fill="#E8B6B1" fill-opacity="0.68"/>
+        <!-- Pétalas frontais -->
+        <path d="M0 0 C-8 -28 -4 -66 8 -82 C16 -92 28 -88 30 -74 C34 -58 28 -34 0 0Z" fill="#F4C9C4" fill-opacity="0.88"/>
+        <path d="M0 0 C-26 -10 -58 -6 -72 8 C-80 16 -78 28 -66 34 C-53 40 -30 32 0 0Z" fill="#E8B6B1" fill-opacity="0.82"/>
+        <path d="M0 0 C14 22 18 56 8 80 C2 92 -12 90 -18 76 C-24 60 -18 34 0 0Z" fill="#F4C9C4" fill-opacity="0.8"/>
+        <!-- Centro da flor -->
+        <circle r="16" fill="#F8E0D8" fill-opacity="0.95"/>
+        <circle r="9" fill="#D4A870" fill-opacity="0.8"/>
+        <!-- Estames -->
+        <line x1="0" y1="-5" x2="-7" y2="-15" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+        <line x1="5" y1="-4" x2="12" y2="-14" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+        <line x1="-5" y1="0" x2="-15" y2="0" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+        <line x1="5" y1="0" x2="15" y2="0" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+        <line x1="0" y1="5" x2="0" y2="15" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+        <line x1="-4" y1="4" x2="-11" y2="11" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+        <line x1="4" y1="4" x2="11" y2="11" stroke="#C8904A" stroke-width="0.9" opacity="0.75"/>
+      </g>
+
+      <!-- FLOR SÁLVIA (esquerda) -->
+      <g transform="translate(52,290)">
+        <path d="M0 0 C-11 -20 -15 -48 -7 -70 C-1 -82 11 -78 15 -64 C20 -50 15 -26 0 0Z" fill="#AEB89A" fill-opacity="0.78"/>
+        <path d="M0 0 C20 -12 48 -14 62 -4 C70 2 68 14 58 20 C46 26 26 20 0 0Z" fill="#A8B8A0" fill-opacity="0.72"/>
+        <path d="M0 0 C-20 12 -48 14 -62 4 C-70 -2 -68 -14 -58 -20 C-46 -26 -26 -20 0 0Z" fill="#AEB89A" fill-opacity="0.72"/>
+        <path d="M0 0 C11 20 15 48 7 70 C1 82 -11 78 -15 64 C-20 50 -15 26 0 0Z" fill="#A8B8A0" fill-opacity="0.78"/>
+        <circle r="13" fill="#B5C4B8" fill-opacity="0.88"/>
+      </g>
+
+      <!-- FLOR CREME (direita-baixo) -->
+      <g transform="translate(212,292)">
+        <path d="M0 0 C-9 -16 -12 -40 -5 -58 C1 -68 11 -64 14 -52 C18 -38 14 -20 0 0Z" fill="#F0E4D4" fill-opacity="0.82"/>
+        <path d="M0 0 C16 -9 40 -11 54 -3 C60 3 58 12 50 17 C40 22 22 16 0 0Z" fill="#E8D8C4" fill-opacity="0.78"/>
+        <path d="M0 0 C-16 9 -40 11 -54 3 C-60 -3 -58 -12 -50 -17 C-40 -22 -22 -16 0 0Z" fill="#F0E4D4" fill-opacity="0.78"/>
+        <path d="M0 0 C9 16 12 40 5 58 C-1 68 -11 64 -14 52 C-18 38 -14 20 0 0Z" fill="#E8D8C4" fill-opacity="0.8"/>
+        <circle r="9" fill="#D9C060" fill-opacity="0.55"/>
+      </g>
+
+      <!-- Botão pequeno (broto) topo-esquerdo -->
+      <path d="M58 8 C56 20 55 36 58 50" stroke="#9A8878" stroke-width="0.9" stroke-linecap="round" opacity="0.55"/>
+      <g transform="translate(57,6)">
+        <path d="M0 0 C-4 -8 -5 -20 -2 -28 C1 -32 6 -30 8 -22 C10 -14 8 -5 0 0Z" fill="#E8B6B1" fill-opacity="0.72"/>
+        <path d="M0 0 C4 -8 5 -20 2 -28 C-1 -32 -6 -30 -8 -22 C-10 -14 -8 -5 0 0Z" fill="#F4C9C4" fill-opacity="0.66"/>
+      </g>
+
+      <!-- Gotas/pétalas flutuantes decorativas -->
+      <circle cx="38" cy="118" r="5.5" fill="#E8B6B1" fill-opacity="0.5"/>
+      <circle cx="50" cy="98" r="3.5" fill="#F4C9C4" fill-opacity="0.45"/>
+      <circle cx="220" cy="148" r="4" fill="#E8B6B1" fill-opacity="0.42"/>
+    </svg>
+  </div>
+
+  <!-- Conteúdo do PIN centralizado -->
+  <div class="pin-layout">
+
+    <!-- Marca / logo -->
+    <div class="pin-brand">
+      <div class="pin-brand-icon" aria-hidden="true">
+        <!-- Ícone: folha com + -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <path d="M22 38 C22 28 16 20 8 14 C14 8 24 6 30 10 C36 14 38 22 36 30 C34 36 28 40 22 38Z" fill="rgba(255,255,255,0.9)"/>
+          <path d="M22 38 C22 28 28 20 36 14 C32 10 24 8 18 12" fill="rgba(255,255,255,0.6)"/>
+          <line x1="22" y1="20" x2="22" y2="32" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="16" y1="26" x2="28" y2="26" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="pin-brand-name">Vitta+</h1>
+    </div>
+
+    <!-- Título e subtítulo -->
+    <p class="pin-title-text" id="pinTitle">Digite seu PIN</p>
+    <p class="pin-sub-text" id="pinSub"></p>
+
+    <!-- Dots indicadores -->
+    <div class="pin-dots" id="pinDots">
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+    </div>
+
+    <!-- Erro -->
+    <p class="pin-error-text" id="pinError"></p>
+
+    <!-- Teclado numérico -->
     <div class="pin-pad" id="pinPad"></div>
-    <p class="overlay-error" id="pinError"></p>
+
+    <!-- Esqueci meu PIN -->
+    <button class="pin-forgot-btn" onclick="vittaForgotPin()">
+      Esqueci meu PIN
+    </button>
   </div>
 </div>
 
@@ -425,23 +538,23 @@
 </div><!-- /app -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/storage.js?v=20260617e"></script>
-<script src="js/data.js?v=20260617e"></script>
-<script src="js/utils.js?v=20260617e"></script>
-<script src="js/charts.js?v=20260617e"></script>
-<script src="js/screens/dashboard.js?v=20260617e"></script>
-<script src="js/screens/hydration.js?v=20260617e"></script>
-<script src="js/screens/nutrition.js?v=20260617e"></script>
-<script src="js/screens/workout.js?v=20260617e"></script>
-<script src="js/screens/progress.js?v=20260617e"></script>
-<script src="js/screens/health.js?v=20260617e"></script>
-<script src="js/screens/diary.js?v=20260617e"></script>
-<script src="js/screens/ai.js?v=20260617e"></script>
-<script src="js/screens/config.js?v=20260617e"></script>
-<script src="js/screens/auth.js?v=20260617e"></script>
-<script src="js/router.js?v=20260617e"></script>
-<script src="js/app.js?v=20260617e"></script>
-<script src="js/sw-register.js?v=20260617e"></script>
+<script src="js/storage.js?v=20260617f"></script>
+<script src="js/data.js?v=20260617f"></script>
+<script src="js/utils.js?v=20260617f"></script>
+<script src="js/charts.js?v=20260617f"></script>
+<script src="js/screens/dashboard.js?v=20260617f"></script>
+<script src="js/screens/hydration.js?v=20260617f"></script>
+<script src="js/screens/nutrition.js?v=20260617f"></script>
+<script src="js/screens/workout.js?v=20260617f"></script>
+<script src="js/screens/progress.js?v=20260617f"></script>
+<script src="js/screens/health.js?v=20260617f"></script>
+<script src="js/screens/diary.js?v=20260617f"></script>
+<script src="js/screens/ai.js?v=20260617f"></script>
+<script src="js/screens/config.js?v=20260617f"></script>
+<script src="js/screens/auth.js?v=20260617f"></script>
+<script src="js/router.js?v=20260617f"></script>
+<script src="js/app.js?v=20260617f"></script>
+<script src="js/sw-register.js?v=20260617f"></script>
 <script>
   // Sidebar desktop: highlight ativo
   document.addEventListener('DOMContentLoaded', () => {
