@@ -1,13 +1,16 @@
 /**
  * screens/auth.js — Login (Supabase Auth) + PIN local
  *
- * Duas camadas de acesso:
- *  1) Login com e-mail/senha (uma vez por dispositivo, sessão persiste)
- *  2) PIN de 4 dígitos (trava de tela local, verificado a cada abertura)
+ * Fluxo:
+ *  1) Login com e-mail/senha (uma vez por dispositivo)
+ *  2) PIN de 4 dígitos (verificado a cada abertura)
+ *
+ * FIX: dots visuais corrigidos + feedback imediato + overlay robusto
  */
 
 const ScreenAuth = (() => {
 
+  // ── OVERLAY CONTROL ─────────────────────────────────────────
   function showOverlay(id) {
     document.querySelectorAll('.overlay').forEach(el => el.classList.remove('on'));
     document.getElementById(id)?.classList.add('on');
@@ -17,7 +20,7 @@ const ScreenAuth = (() => {
     document.querySelectorAll('.overlay').forEach(el => el.classList.remove('on'));
   }
 
-  // ── LOGIN ─────────────────────────────────────────────────
+  // ── LOGIN ────────────────────────────────────────────────────
   function showLogin(onSuccess) {
     showOverlay('authScreen');
     const emailEl = document.getElementById('authEmail');
@@ -35,11 +38,11 @@ const ScreenAuth = (() => {
         return;
       }
       btn.disabled = true;
-      btn.textContent = 'Entrando...';
+      btn.textContent = 'Entrando…';
       try {
         await Storage.auth.signIn(email, pass);
         onSuccess();
-      } catch (err) {
+      } catch {
         errEl.textContent = 'E-mail ou senha incorretos.';
       } finally {
         btn.disabled = false;
@@ -48,46 +51,96 @@ const ScreenAuth = (() => {
     }
 
     btn.onclick = submit;
-    passEl.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+    passEl.onkeydown = e => { if (e.key === 'Enter') submit(); };
   }
 
-  // ── PIN (setup ou unlock) ───────────────────────────────────
-  function renderPinPad() {
+  // ── PIN PAD ──────────────────────────────────────────────────
+  // Renderiza pad numérico com feedback visual imediato
+  function renderPinPad(onKey) {
+    const pad = document.getElementById('pinPad');
+    if (!pad) return;
+
     const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
-    return keys.map(k => {
-      if (k === '') return `<div></div>`;
-      return `<button class="pin-key" data-key="${k}">${k}</button>`;
-    }).join('');
-  }
 
-  function updateDots(n) {
-    document.querySelectorAll('#pinDots .pin-dot').forEach((dot, i) => {
-      dot.classList.toggle('filled', i < n);
+    pad.innerHTML = keys.map(k => {
+      if (!k) return '<div></div>';
+      return `<button class="pin-key" type="button" data-key="${k}">${k}</button>`;
+    }).join('');
+
+    // Usar addEventListener direto em cada botão (mais confiável que delegação)
+    pad.querySelectorAll('.pin-key').forEach(btn => {
+      // Usar touchstart para resposta imediata no mobile
+      const handler = (e) => {
+        e.preventDefault();  // evita duplo disparo touch+click
+        // Feedback visual imediato: escurecer o botão
+        btn.style.background = 'rgba(201,138,134,0.25)';
+        setTimeout(() => { btn.style.background = ''; }, 180);
+        onKey(btn.dataset.key);
+      };
+      btn.addEventListener('touchstart', handler, { passive: false });
+      btn.addEventListener('click', (e) => {
+        // Click só processa se não houve touch (evita duplo disparo)
+        if (!e.isTrusted || e.pointerType === '') return;
+        handler(e);
+      });
     });
   }
 
+  // Atualiza os 4 dots — com classe 'filled' que o CSS usa
+  function updateDots(count) {
+    const dots = document.querySelectorAll('#pinDots .pin-dot');
+    dots.forEach((dot, i) => {
+      if (i < count) {
+        dot.classList.add('filled');
+        dot.style.background = '#C98A86';  // garantia inline caso CSS falhe
+        dot.style.transform  = 'scale(1.2)';
+        setTimeout(() => { dot.style.transform = ''; }, 150);
+      } else {
+        dot.classList.remove('filled');
+        dot.style.background = '';
+        dot.style.transform  = '';
+      }
+    });
+  }
+
+  // Shaker animation nos dots (PIN errado)
+  function shakeDots() {
+    const el = document.getElementById('pinDots');
+    if (!el) return;
+    el.style.animation = 'none';
+    // Shake inline via keyframes temporários
+    el.style.transition = 'transform 0.1s';
+    const seq = [8, -8, 6, -6, 4, -4, 0];
+    seq.forEach((x, i) => {
+      setTimeout(() => { el.style.transform = `translateX(${x}px)`; }, i * 60);
+    });
+    setTimeout(() => { el.style.transform = ''; }, seq.length * 60 + 50);
+  }
+
+  // ── PIN SETUP (criar PIN novo) ───────────────────────────────
   function showPinSetup(onSuccess) {
     showOverlay('pinScreen');
     document.getElementById('pinTitle').textContent = 'Crie seu PIN';
-    document.getElementById('pinSub').textContent   = 'Escolha 4 dígitos para travar o app';
+    document.getElementById('pinSub').textContent   = 'Escolha 4 dígitos';
     document.getElementById('pinError').textContent = '';
-    document.getElementById('pinPad').innerHTML = renderPinPad();
-
-    let first = null;
-    let digits = '';
     updateDots(0);
 
-    document.getElementById('pinPad').onclick = async (e) => {
-      const key = e.target.closest('.pin-key')?.dataset.key;
-      if (key === undefined) return;
+    let first  = null;
+    let digits = '';
+
+    renderPinPad((key) => {
       const errEl = document.getElementById('pinError');
+      if (errEl) errEl.textContent = '';
 
       if (key === '⌫') {
-        digits = digits.slice(0, -1);
-        updateDots(digits.length);
+        if (digits.length > 0) {
+          digits = digits.slice(0, -1);
+          updateDots(digits.length);
+        }
         return;
       }
       if (digits.length >= 4) return;
+
       digits += key;
       updateDots(digits.length);
 
@@ -97,60 +150,71 @@ const ScreenAuth = (() => {
           digits = '';
           setTimeout(() => {
             updateDots(0);
-            document.getElementById('pinSub').textContent = 'Confirme o PIN';
-          }, 150);
+            const sub = document.getElementById('pinSub');
+            if (sub) sub.textContent = 'Confirme o PIN';
+          }, 200);
         } else {
           if (digits === first) {
-            await Storage.pin.setup(digits);
-            onSuccess();
+            Storage.pin.setup(digits).then(() => onSuccess());
           } else {
-            errEl.textContent = 'PINs diferentes. Tente novamente.';
+            shakeDots();
+            if (errEl) errEl.textContent = 'PINs diferentes. Tente novamente.';
             first = null; digits = '';
             setTimeout(() => {
               updateDots(0);
-              document.getElementById('pinSub').textContent = 'Escolha 4 dígitos para travar o app';
-            }, 400);
+              const sub = document.getElementById('pinSub');
+              if (sub) sub.textContent = 'Escolha 4 dígitos';
+            }, 500);
           }
         }
       }
-    };
+    });
   }
 
+  // ── PIN UNLOCK (desbloquear) ─────────────────────────────────
   function showPinUnlock(onSuccess) {
     showOverlay('pinScreen');
     document.getElementById('pinTitle').textContent = 'Digite seu PIN';
     document.getElementById('pinSub').textContent   = '';
     document.getElementById('pinError').textContent = '';
-    document.getElementById('pinPad').innerHTML = renderPinPad();
-
-    let digits = '';
     updateDots(0);
 
-    document.getElementById('pinPad').onclick = async (e) => {
-      const key = e.target.closest('.pin-key')?.dataset.key;
-      if (key === undefined) return;
+    let digits = '';
+
+    renderPinPad((key) => {
       const errEl = document.getElementById('pinError');
+      if (errEl) errEl.textContent = '';
 
       if (key === '⌫') {
-        digits = digits.slice(0, -1);
-        updateDots(digits.length);
+        if (digits.length > 0) {
+          digits = digits.slice(0, -1);
+          updateDots(digits.length);
+        }
         return;
       }
       if (digits.length >= 4) return;
+
       digits += key;
       updateDots(digits.length);
 
       if (digits.length === 4) {
-        const ok = await Storage.pin.verify(digits);
-        if (ok) {
-          onSuccess();
-        } else {
-          errEl.textContent = 'PIN incorreto.';
-          digits = '';
-          setTimeout(() => updateDots(0), 300);
-        }
+        Storage.pin.verify(digits).then(ok => {
+          if (ok) {
+            // Dots ficam verdes por um instante antes de entrar
+            const dots = document.querySelectorAll('#pinDots .pin-dot');
+            dots.forEach(d => { d.style.background = '#AEB89A'; });
+            setTimeout(() => onSuccess(), 200);
+          } else {
+            shakeDots();
+            digits = '';
+            setTimeout(() => {
+              updateDots(0);
+              if (errEl) errEl.textContent = 'PIN incorreto. Tente de novo.';
+            }, 350);
+          }
+        });
       }
-    };
+    });
   }
 
   return { showLogin, showPinSetup, showPinUnlock, hideOverlays };
