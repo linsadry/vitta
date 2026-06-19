@@ -43,9 +43,14 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return
-      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
         if (session?.user) {
-          setState(s => ({ ...s, supaUser: session.user, loading: false }))
+          // Load pinExists on sign-in
+          supabase.from('fitness_settings').select('pin_hash').eq('user_id', session.user.id).maybeSingle()
+            .then(({ data: settings }) => {
+              if (!mounted) return
+              setState(s => ({ ...s, supaUser: session.user, loading: false, pinExists: !!(settings?.pin_hash) }))
+            })
         }
       }
       if (event === 'SIGNED_OUT') {
