@@ -9,9 +9,11 @@ import Home from './pages/Home'
 import Evolucao from './pages/Evolucao'
 import Saude from './pages/Saude'
 import Treinos from './pages/Treinos'
+import Ciclo from './pages/Ciclo'
+import Fiv from './pages/Fiv'
+import Diario from './pages/Diario'
 import { IA, Jornada } from './pages/stubs'
 
-/* Reset scroll position on every route change */
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
@@ -47,6 +49,9 @@ function AppShell() {
           <Route path="/evolucao" element={<Evolucao userId={uid} />} />
           <Route path="/saude"    element={<Saude    userId={uid} />} />
           <Route path="/treinos"  element={<Treinos  userId={uid} />} />
+          <Route path="/ciclo"    element={<Ciclo    userId={uid} />} />
+          <Route path="/fiv"      element={<Fiv      userId={uid} />} />
+          <Route path="/diario"   element={<Diario   userId={uid} />} />
           <Route path="/ia"       element={<IA />} />
           <Route path="/jornada"  element={<Jornada />} />
         </Routes>
