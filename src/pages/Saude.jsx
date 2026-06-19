@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, X, Check, CalendarDays, Pill, Stethoscope, FlaskConical, Activity, ChevronRight } from 'lucide-react'
+import { Plus, X, Check, CalendarDays, Pill, Stethoscope, FlaskConical, Activity, ChevronRight, Heart, Flower2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
+import { useNavigate } from 'react-router-dom'
 import { today, formatDate, formatDateShort } from '../lib/utils'
 
 /* ─── CONSULTATION CARD ─────────────────────────────────────────── */
@@ -189,6 +190,7 @@ function MedModal({ userId, onClose, onSave }) {
 
 /* ─── MAIN PAGE ──────────────────────────────────────────────────── */
 export default function Saude({ userId }) {
+  const navigate = useNavigate()
   const [tab, setTab]       = useState('consultas')
   const [modal, setModal]   = useState(null)
   const [loading, setLoading] = useState(true)
@@ -243,9 +245,17 @@ export default function Saude({ userId }) {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 500, color: 'var(--c-text-900)', letterSpacing: '-0.02em', marginBottom: 4 }}>
             Saúde
           </h1>
-          <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 16, color: 'var(--c-text-500)', fontStyle: 'italic' }}>
+          <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 16, color: 'var(--c-text-500)', fontStyle: 'italic', marginBottom: 16 }}>
             Consultas, medicamentos e exames
           </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => navigate('/ciclo')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-full)', border: 'none', cursor: 'pointer', background: 'rgba(212,165,165,0.15)', color: 'var(--c-rose-deep)', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500 }}>
+              Ciclo
+            </button>
+            <button onClick={() => navigate('/fiv')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-full)', border: 'none', cursor: 'pointer', background: 'rgba(196,184,212,0.2)', color: '#7B6FA0', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 500 }}>
+              Jornada FIV
+            </button>
+          </div>
         </div>
       </div>
 

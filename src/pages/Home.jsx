@@ -506,7 +506,7 @@ export default function Home({ userId }) {
     } else if (id === 'treino') {
       navigate('/treinos')
     } else if (id === 'alimentos' || id === 'diario') {
-      navigate('/saude')
+      navigate('/diario')
     } else {
       navigate('/saude')
     }
