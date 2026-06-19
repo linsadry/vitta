@@ -1,5 +1,5 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import BottomNav from './components/BottomNav'
 import FloatingButton from './components/FloatingButton'
@@ -10,6 +10,16 @@ import Evolucao from './pages/Evolucao'
 import Saude from './pages/Saude'
 import Treinos from './pages/Treinos'
 import { IA, Jornada } from './pages/stubs'
+
+/* Reset scroll position on every route change */
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const el = document.querySelector('.page-content')
+    if (el) el.scrollTop = 0
+  }, [pathname])
+  return null
+}
 
 function AppShell() {
   const { loading, supaUser, pinVerified, pinExists, verifyPin, sendOtp, verifyOtp } = useAuth()
@@ -30,6 +40,7 @@ function AppShell() {
 
   return (
     <div className="app-shell">
+      <ScrollToTop />
       <main className="page-content">
         <Routes>
           <Route path="/"         element={<Home     userId={uid} />} />
