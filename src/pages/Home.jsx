@@ -90,97 +90,102 @@ function useHomeData(userId) {
 
 /* ─── HEATMAP CALENDAR ──────────────────────────────────────────── */
 function ConsistencyCalendar({ tracking }) {
-  const days  = last35Days()
-  const byDay = Object.fromEntries((tracking || []).map(t => [t.date, t]))
-  const DOW   = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D']
+  const days   = last35Days()
+  const byDay  = Object.fromEntries((tracking || []).map(t => [t.date, t]))
+  const todayStr = today()
+
+  const MONTHS_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+  const BG = [
+    'var(--c-base-2)',
+    'rgba(212,165,165,0.28)',
+    'rgba(212,165,165,0.52)',
+    'rgba(212,165,165,0.76)',
+    'rgba(212,165,165,1.0)',
+  ]
 
   const intensity = (dt) => {
     const r = byDay[dt]
     if (!r) return 0
     let n = 0
-    if (r.water_ml > 0)  n++
+    if (r.water_ml > 0) n++
     if (r.sleep_hours > 0) n++
     if (r.strength_done || r.aerobic_done) n++
     if (r.protein_g > 0) n++
-    if (r.mood)          n++
-    if (r.notes)         n++
+    if (r.mood) n++
+    if (r.notes) n++
     return Math.min(n, 4)
   }
 
-  const COLORS = [
-    'transparent',
-    'rgba(212,165,165,0.25)',
-    'rgba(212,165,165,0.50)',
-    'rgba(212,165,165,0.75)',
-    'rgba(212,165,165,1.0)',
-  ]
+  const firstDay = new Date(days[0] + 'T12:00:00').getDay()
+  const offset   = (firstDay + 6) % 7
 
-  // Pad so grid starts on correct weekday (Mon = 0)
-  const firstDay = new Date(days[0] + 'T12:00:00').getDay() // 0=Sun
-  const offset   = (firstDay + 6) % 7 // rotate to Mon-start
+  const grid = [...Array(offset).fill(null), ...days]
+  const weeks = []
+  for (let i = 0; i < grid.length; i += 7) weeks.push(grid.slice(i, i + 7))
+
+  const weekMonthLabel = (week) => {
+    const first = week.find(d => d !== null)
+    if (!first) return ''
+    const d = new Date(first + 'T12:00:00')
+    if (d.getDate() <= 7) return MONTHS_PT[d.getMonth()]
+    return ''
+  }
 
   return (
     <div style={{ padding: '0 var(--page-pad-x)' }}>
       <style>{`
-        .heatmap-grid {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 5px;
+        .hm-outer { display: grid; grid-template-columns: 28px 1fr; gap: 0 6px; }
+        .hm-month { font-family: var(--font-ui); font-size: 9px; color: var(--c-text-300); text-align: right; text-transform: uppercase; letter-spacing: 0.04em; }
+        .hm-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+        .hm-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 5px; }
+        .hm-dow { font-family: var(--font-ui); font-size: 9px; color: var(--c-text-300); text-align: center; }
+        .hm-cell {
+          width: 100%; max-width: 44px; aspect-ratio: 1; border-radius: 5px;
+          display: flex; align-items: flex-end; justify-content: flex-end;
+          padding: 2px 3px; cursor: pointer; transition: transform 0.1s; box-sizing: border-box;
         }
-        .heatmap-day-label {
-          font-family: var(--font-ui);
-          font-size: 10px;
-          color: var(--c-text-300);
-          text-align: center;
-          line-height: 1;
-          padding-bottom: 4px;
-        }
-        .heatmap-cell {
-          aspect-ratio: 1;
-          border-radius: 4px;
-          background: var(--c-base-2);
-          cursor: pointer;
-          transition: transform 0.1s;
-          position: relative;
-        }
-        .heatmap-cell:active { transform: scale(0.88); }
-        .heatmap-cell.today { box-shadow: 0 0 0 1.5px var(--c-rose-mid); }
-        .heatmap-cell.empty { background: transparent; cursor: default; }
+        .hm-cell:active { transform: scale(0.88); }
+        .hm-cell.is-today { box-shadow: 0 0 0 1.5px var(--c-rose-mid); }
+        .hm-cell.is-empty { background: transparent !important; cursor: default; }
+        .hm-num { font-family: var(--font-ui); font-size: 9px; font-weight: 400; pointer-events: none; }
       `}</style>
 
-      {/* Day of week labels */}
-      <div className="heatmap-grid" style={{ marginBottom: 4 }}>
-        {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((d, i) => (
-          <div key={i} className="heatmap-day-label">{d}</div>
-        ))}
+      <div className="hm-outer">
+        <div />
+        <div className="hm-dow-row">
+          {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((d, i) => (
+            <div key={i} className="hm-dow">{d}</div>
+          ))}
+        </div>
       </div>
 
-      {/* Cells */}
-      <div className="heatmap-grid">
-        {Array.from({ length: offset }, (_, i) => (
-          <div key={`pad-${i}`} className="heatmap-cell empty" />
-        ))}
-        {days.map((dt) => {
-          const lvl = intensity(dt)
-          const isToday = dt === today()
-          return (
-            <div
-              key={dt}
-              className={`heatmap-cell${isToday ? ' today' : ''}`}
-              style={{ background: lvl === 0 ? 'var(--c-base-2)' : COLORS[lvl] }}
-              title={formatDate(dt)}
-            />
-          )
-        })}
-      </div>
+      {weeks.map((week, wi) => (
+        <div key={wi} className="hm-outer">
+          <div className="hm-month" style={{ paddingTop: 4 }}>{weekMonthLabel(week)}</div>
+          <div className="hm-row">
+            {week.map((dt, di) => {
+              if (!dt) return <div key={`e${di}`} className="hm-cell is-empty" />
+              const lvl     = intensity(dt)
+              const isToday = dt === todayStr
+              const dayNum  = new Date(dt + 'T12:00:00').getDate()
+              const numColor = lvl >= 3 ? 'rgba(255,255,255,0.65)' : 'var(--c-text-300)'
+              return (
+                <div key={dt} className={`hm-cell${isToday ? ' is-today' : ''}`}
+                  style={{ background: BG[lvl] }} title={formatDate(dt)}>
+                  <span className="hm-num" style={{ color: numColor }}>{dayNum}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
 
-      {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, justifyContent: 'flex-end' }}>
-        <span style={{ fontSize: 10, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>Menos</span>
-        {COLORS.map((c, i) => (
-          <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: i === 0 ? 'var(--c-base-2)' : c }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: 9, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>Sem reg.</span>
+        {BG.map((c, i) => (
+          <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c, border: i===0 ? '1px solid var(--c-border)' : 'none' }} />
         ))}
-        <span style={{ fontSize: 10, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>Mais</span>
+        <span style={{ fontSize: 9, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>Completo</span>
       </div>
     </div>
   )
