@@ -24,6 +24,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  position: fixed; /* iOS: prevents rubber-band, enables child scroll */
+  width: 100%;
 }
 
 #root {
@@ -43,11 +45,10 @@ body {
 
 .page-content {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;  /* scroll (not auto) required for iOS -webkit-overflow-scrolling */
   overflow-x: hidden;
   padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px);
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 .page-content::-webkit-scrollbar { display: none; }
