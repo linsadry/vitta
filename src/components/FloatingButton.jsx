@@ -10,8 +10,8 @@ export default function FloatingButton({ onClick }) {
           bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
           right: 20px;
           z-index: 80;
-          width: 52px;
-          height: 52px;
+          width: 44px;
+          height: 44px;
           border-radius: var(--r-full);
           background: var(--c-text-900);
           color: var(--c-base-0);
@@ -33,7 +33,7 @@ export default function FloatingButton({ onClick }) {
         }
       `}</style>
       <button className="fab" onClick={onClick} aria-label="Novo registro">
-        <Plus strokeWidth={2} />
+        <Plus strokeWidth={2} style={{ width: 19, height: 19 }} />
       </button>
     </>
   )
