@@ -134,12 +134,18 @@ function AddProgramModal({ userId, onClose, onSave }) {
   const [name, setName]   = useState('')
   const [saving, setSaving] = useState(false)
 
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate]     = useState('')
+
   const save = async () => {
     if (!name.trim()) return
     setSaving(true)
     const { data: last } = await supabase.from('vitta_programs')
       .select('order_idx').eq('user_id', userId).order('order_idx', { ascending: false }).limit(1).maybeSingle()
-    await supabase.from('vitta_programs').insert({ user_id: userId, name: name.trim(), order_idx: (last?.order_idx ?? -1) + 1 })
+    await supabase.from('vitta_programs').insert({
+      user_id: userId, name: name.trim(), order_idx: (last?.order_idx ?? -1) + 1,
+      start_date: startDate || null, end_date: endDate || null,
+    })
     onSave?.(); onClose()
   }
 
@@ -150,7 +156,11 @@ function AddProgramModal({ userId, onClose, onSave }) {
         <h2 className="sheet-title">Novo programa</h2>
         <label className="input-label">Nome</label>
         <input className="input-field" type="text" placeholder="Ex: Programa 2 — Hipertrofia"
-          value={name} onChange={e => setName(e.target.value)} autoFocus style={{ marginBottom: 20 }} />
+          value={name} onChange={e => setName(e.target.value)} autoFocus style={{ marginBottom: 14 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+          <div><label className="input-label">Início</label><input className="input-field" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
+          <div><label className="input-label">Fim (opcional)</label><input className="input-field" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></div>
+        </div>
         <button className="btn-primary" onClick={save} disabled={!name.trim() || saving}>
           {saving ? 'Criando...' : 'Criar programa'}
         </button>
@@ -179,7 +189,7 @@ export default function Treinos({ userId }) {
   useEffect(() => {
     if (!userId) return
     supabase.from('vitta_programs')
-      .select('*').eq('user_id', userId).eq('active', true).order('order_idx')
+      .select('id,name,order_idx,active,start_date,end_date').eq('user_id', userId).eq('active', true).order('order_idx')
       .then(({ data }) => {
         const list = data || []
         setPrograms(list)
@@ -270,8 +280,15 @@ export default function Treinos({ userId }) {
               color: activeProg === prog.id ? 'var(--c-base-0)' : 'var(--c-text-500)',
               fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: activeProg === prog.id ? 500 : 400,
               flexShrink: 0, transition: 'background 0.15s, color 0.15s',
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
             }}>
-              {prog.name}
+              <span>{prog.name}</span>
+              {prog.start_date && (
+                <span style={{ fontSize: 9, opacity: 0.7, fontWeight: 400 }}>
+                  {new Date(prog.start_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                  {prog.end_date ? ' → ' + new Date(prog.end_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : ''}
+                </span>
+              )}
             </button>
           ))}
           <button onClick={() => setModal('prog')} style={{
