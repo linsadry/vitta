@@ -414,6 +414,8 @@ function RegisterModal({ type, userId, onClose, onSave }) {
   const cfg = configs[type]
   if (!cfg) return null
 
+  const [regDate, setRegDate] = useState(todayStr)
+
   const save = async () => {
     if (!val || saving) return
     setSaving(true)
@@ -423,15 +425,14 @@ function RegisterModal({ type, userId, onClose, onSave }) {
 
     if (cfg.table === 'physical_metrics') {
       await supabase.from('physical_metrics')
-        .insert({ user_id: userId, date: todayStr, [cfg.field]: numVal })
+        .insert({ user_id: userId, date: regDate, [cfg.field]: numVal })
     } else {
-      // Upsert into daily_tracking
       const { data: existing } = await supabase
-        .from('daily_tracking').select('id').eq('user_id', userId).eq('date', todayStr).maybeSingle()
+        .from('daily_tracking').select('id').eq('user_id', userId).eq('date', regDate).maybeSingle()
       if (existing) {
         await supabase.from('daily_tracking').update({ [cfg.field]: numVal }).eq('id', existing.id)
       } else {
-        await supabase.from('daily_tracking').insert({ user_id: userId, date: todayStr, [cfg.field]: numVal })
+        await supabase.from('daily_tracking').insert({ user_id: userId, date: regDate, [cfg.field]: numVal })
       }
     }
 
@@ -461,6 +462,12 @@ function RegisterModal({ type, userId, onClose, onSave }) {
           </div>
         ) : (
           <>
+            <div style={{ marginBottom: 14 }}>
+              <label className="input-label">Data</label>
+              <input className="input-field" type="date" value={regDate}
+                onChange={e => setRegDate(e.target.value)}
+                max={todayStr} />
+            </div>
             <label className="input-label">{cfg.label}</label>
             <input
               className="input-field"
@@ -613,6 +620,37 @@ export default function Home({ userId }) {
           : <HealthSummary weight={data?.weight} cyclePhase={data?.cyclePhase}
               consultations={data?.consultations} fertility={data?.fertility} />
         }
+      </section>
+
+      {/* ── 3b. SAÚDE EM FOCO ────────────────────────────────────── */}
+      <section style={{ marginBottom: 32 }}>
+        <div className="section-header">
+          <h2 className="section-title">Saúde em foco</h2>
+          <button className="section-link" onClick={() => navigate('/saude')}>Ver painel</button>
+        </div>
+        <div style={{ padding: '0 var(--page-pad-x)' }}>
+          <div className="card" style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}
+            onClick={() => navigate('/saude')}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+              <div style={{ padding: '16px 16px', borderRight: '1px solid var(--c-border-light)', borderBottom: '1px solid var(--c-border-light)' }}>
+                <div style={{ fontSize: 9, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Próxima consulta</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--c-text-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {loading ? '—' : data?.consultations?.[0]?.specialty || 'Nenhuma'}
+                </div>
+                {data?.consultations?.[0] && <div style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', marginTop: 2 }}>{formatDateShort(data.consultations[0].date)}</div>}
+              </div>
+              <div style={{ padding: '16px 16px', borderBottom: '1px solid var(--c-border-light)' }}>
+                <div style={{ fontSize: 9, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ciclo</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--c-text-900)' }}>
+                  {data?.cyclePhase ? data.cyclePhase : '—'}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>Abrir painel de saúde →</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ── 4. AÇÕES DE HOJE ─────────────────────────────────────── */}
