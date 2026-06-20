@@ -183,8 +183,11 @@ export default function Treinos({ userId }) {
       .then(({ data }) => {
         const list = data || []
         setPrograms(list)
-        // Use functional update: only set if still null
-        if (list.length) setActiveProg(prev => prev ?? list[0].id)
+        if (list.length) {
+          setActiveProg(prev => prev ?? list[0].id)
+        } else {
+          setLoading(false) // No programs found → stop loading
+        }
       })
   }, [userId, refreshKey])
 
