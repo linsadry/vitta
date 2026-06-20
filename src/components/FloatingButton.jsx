@@ -9,7 +9,7 @@ export default function FloatingButton({ onClick }) {
           position: fixed;
           bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
           right: 20px;
-          z-index: 90;
+          z-index: 80;
           width: 52px;
           height: 52px;
           border-radius: var(--r-full);
