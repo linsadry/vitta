@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Scale, Ruler, Moon, Droplets, TrendingUp, TrendingDown, Minus, Plus, X, Check, FlaskConical } from 'lucide-react'
+import { Scale, Ruler, Moon, Droplets, TrendingUp, TrendingDown, Minus, Plus, X, Check, FlaskConical, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 import { today, daysAgo, formatDate, formatDateShort, fmtWeight, fmtSleep, fmtWater } from '../lib/utils'
@@ -145,10 +145,12 @@ function MeasureRow({ label, value, unit, prev }) {
 }
 
 /* ─── HABIT WEEK STRIP ───────────────────────────────────────────── */
-function HabitStrip({ label, icon: Icon, color, data, field, goal, unit, fmt }) {
+function HabitStrip({ label, icon: Icon, color, data, field, getValue, goal, unit, fmt }) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const dt = daysAgo(6 - i)
-    return { dt, val: data?.find(d => d.date === dt)?.[field] }
+    const row = data?.find(d => d.date === dt)
+    const val = row ? (getValue ? getValue(row) : (row[field] || 0)) : 0
+    return { dt, val }
   })
   const filled = days.filter(d => d.val > 0).length
   const avg    = days.filter(d => d.val > 0).length
@@ -360,7 +362,7 @@ export default function Evolucao({ userId }) {
       { data: labResults },
     ] = await Promise.all([
       supabase.from('physical_metrics').select('*').eq('user_id', userId).gte('date', d90).order('date'),
-      supabase.from('daily_tracking').select('date,water_ml,sleep_hours,protein_g,strength_done,aerobic_done').eq('user_id', userId).gte('date', d7).order('date'),
+      supabase.from('daily_tracking').select('date,water_ml,sleep_hours,protein_g,strength_done,aerobic_done,skincare_am,skincare_pm').eq('user_id', userId).gte('date', d7).order('date'),
       supabase.from('fitness_settings').select('weight_goal1_kg').eq('user_id', userId).maybeSingle(),
       supabase.from('lab_results').select('category,date,result,unit,status').eq('user_id', userId).eq('status', 'realizado').not('result', 'is', null).order('date'),
     ])
@@ -489,6 +491,10 @@ export default function Evolucao({ userId }) {
             <HabitStrip label="Proteína" icon={FlaskConical} color="var(--c-gold)" data={data?.trackList}
               field="protein_g" goal={120} unit="g"
               fmt={v => `${Math.round(v)}g`} />
+            <HabitStrip label="Skincare" icon={Sparkles} color="#C4B8D4" data={data?.trackList}
+              getValue={r => (r.skincare_am ? 1 : 0) + (r.skincare_pm ? 1 : 0)}
+              goal={2} unit=""
+              fmt={v => `${Math.round(v*10)/10}/2`} />
           </div>
         </section>
       )}
