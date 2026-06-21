@@ -84,6 +84,7 @@ function useHomeData(userId) {
       supabase.from('diary_entries').select('id,mood,date').eq('user_id',userId).eq('date',todayStr).maybeSingle(),
       supabase.from('cycle_entries').select('date,type').eq('user_id',userId).gte('date',d90).order('date'),
       supabase.from('health_consultations').select('*').eq('user_id',userId).gte('date',todayStr).order('date').limit(4),
+      supabase.from('health_consultations').select('date').eq('user_id',userId).gte('date',d35).lt('date',todayStr).order('date'),
     ])
 
     const todayTracking=(tracking||[]).find(d=>d.date===todayStr)
@@ -95,6 +96,10 @@ function useHomeData(userId) {
     const fivList=fivStages||[]
     const activeFiv=fivList.find(s=>s.status==='ativo')
     const doneCount=fivList.filter(s=>s.status==='concluido').length
+
+    const cycleByDate={}
+    for(const e of cycleEntries||[]){if(!cycleByDate[e.date])cycleByDate[e.date]=[];cycleByDate[e.date].push(e)}
+    const consultDateSet=new Set([...(pastConsults||[]).map(x=>x.date),...(upConsults||[]).map(x=>x.date)])
 
     setData({
       tracking:tracking||[], todayTracking,
@@ -108,7 +113,10 @@ function useHomeData(userId) {
       todaySono:(todayTracking?.sleep_hours||0)>0,
       todayTreino:!!todayWk,
       todayRefeicao:!!todayMeal,
-      cycle,
+      todaySkincare:(todayTracking?.skincare_am?1:0)+(todayTracking?.skincare_pm?1:0),
+      skincare_am:!!todayTracking?.skincare_am,
+      skincare_pm:!!todayTracking?.skincare_pm,
+      cycle, cycleByDate, consultDateSet,
       upConsults:upConsults||[],
     })
     setLoading(false)
@@ -118,21 +126,17 @@ function useHomeData(userId) {
   return {data,loading,reload:load}
 }
 
-/* ─── CONSISTENCY HEATMAP ──────────────────────────────────────── */
-function ConsistencyCalendar({ tracking, onDayClick }) {
-  const todayStr=today()
-  const byDate=Object.fromEntries((tracking||[]).map(t=>[t.date,t]))
-  const MONTHS=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+/* ─── CONSISTENCY HEATMAP (enhanced) ──────────────────────────── */
+function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick }) {
+  const todayStr = today()
+  const byDate = Object.fromEntries((tracking||[]).map(t=>[t.date,t]))
+  const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
   const score = (dt) => {
-    const r=byDate[dt]; if(!r) return 0
-    let n=0
-    if(r.water_ml>0) n++
-    if(r.sleep_hours>0) n++
-    if(r.strength_done||r.aerobic_done) n++
-    if(r.protein_g>0) n++
-    if(r.mood) n++
-    if(r.notes) n++
+    const r=byDate[dt]; if(!r) return 0; let n=0
+    if(r.water_ml>0) n++; if(r.sleep_hours>0) n++
+    if(r.strength_done||r.aerobic_done) n++; if(r.protein_g>0) n++
+    if(r.mood) n++; if(r.notes) n++
     return Math.min(n,6)
   }
 
@@ -144,46 +148,94 @@ function ConsistencyCalendar({ tracking, onDayClick }) {
     return 'rgba(212,165,165,1.00)'
   }
 
+  const LEGEND = ['Muito leve','Leve','Moderado','Consistente','Completo']
+
+  // Streak calculation
+  const streak = (() => {
+    let count=0, curr=todayStr
+    while(true){
+      const r=byDate[curr]
+      if(!r || score(curr)===0) break
+      count++
+      const d=new Date(curr+'T12:00:00'); d.setDate(d.getDate()-1)
+      curr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    }
+    return count
+  })()
+
+  // Dots per day (up to 4 colored dots)
+  const getDots = (dt) => {
+    const dots=[]
+    const r=byDate[dt]
+    if(r?.water_ml>0)          dots.push('#6BA8D4')  // água: azul
+    if(r?.strength_done||r?.aerobic_done) dots.push('#8A9E8C')  // treino: sage
+    if(r?.mood)                 dots.push('#C9A96E')  // humor: ouro
+    if((cycleByDate||{})[dt]?.some(e=>e.type==='menstruacao')) dots.push('#D4A5A5')  // ciclo: rosa
+    if((consultDateSet||new Set()).has(dt)) dots.push('#9B8FC4')  // consulta: lavanda
+    return dots.slice(0,4)
+  }
+
   const days=last35Days()
   const firstDay=new Date(days[0]+'T12:00:00').getDay()
   const offset=(firstDay+6)%7
   const grid=[...Array(offset).fill(null),...days]
-  const weeks=[];for(let i=0;i<grid.length;i+=7)weeks.push(grid.slice(i,i+7))
-  const monthLabel=(w)=>{const f=w.find(d=>d);if(!f)return'';const d=new Date(f+'T12:00:00');if(d.getDate()<=7)return MONTHS[d.getMonth()];return''}
+  const weeks=[]; for(let i=0;i<grid.length;i+=7) weeks.push(grid.slice(i,i+7))
+  const monthLabel=(w)=>{const f=w.find(d=>d); if(!f) return ''; const d=new Date(f+'T12:00:00'); if(d.getDate()<=7) return MONTHS[d.getMonth()]; return ''}
 
   return (
     <div>
+      {/* Streak counter */}
+      {streak>0 && (
+        <div style={{marginBottom:12,padding:'10px 14px',background:'rgba(212,165,165,0.1)',borderRadius:'var(--r-md)',display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:6,height:6,borderRadius:'50%',background:'var(--c-rose)',flexShrink:0}}/>
+          <span style={{fontFamily:'var(--font-editorial)',fontSize:14,color:'var(--c-text-700)',fontStyle:'italic'}}>
+            {streak} {streak===1?'dia consecutivo':'dias consecutivos'} registrando sua jornada
+          </span>
+        </div>
+      )}
+
       <style>{`
         .hm-grid{display:grid;grid-template-columns:24px 1fr;gap:0 4px}
         .hm-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
-        .hm-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
-        .hm-cell{width:100%;max-width:40px;aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;padding:2px 3px;cursor:pointer;box-sizing:border-box;transition:transform .1s}
+        .hm-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
+        .hm-cell{width:100%;max-width:40px;aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;cursor:pointer;box-sizing:border-box;transition:transform .1s;gap:2px}
         .hm-cell:active{transform:scale(.88)}
         .hm-cell.is-today{box-shadow:0 0 0 1.5px var(--c-rose-mid)}
         .hm-cell.is-empty{background:transparent!important;cursor:default}
-        .hm-num{font-family:var(--font-ui);font-size:9px;font-weight:400;pointer-events:none}
+        .hm-num{font-family:var(--font-ui);font-size:9px;font-weight:400;pointer-events:none;line-height:1}
+        .hm-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+        .hm-dot{width:3px;height:3px;border-radius:50%;flex-shrink:0}
         .hm-mo{font-family:var(--font-ui);font-size:9px;color:var(--c-text-300);text-align:right;text-transform:uppercase;letter-spacing:.04em;padding-top:4px}
       `}</style>
 
-      <div className="hm-grid"><div/><div className="hm-dow">
-        {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>(
-          <div key={d} style={{textAlign:'center',fontSize:9,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{d}</div>
-        ))}
-      </div></div>
+      {/* DOW headers */}
+      <div className="hm-grid"><div/>
+        <div className="hm-dow-row">
+          {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>(
+            <div key={d} style={{textAlign:'center',fontSize:9,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{d}</div>
+          ))}
+        </div>
+      </div>
 
+      {/* Week rows */}
       {weeks.map((week,wi)=>(
         <div key={wi} className="hm-grid">
           <div className="hm-mo">{monthLabel(week)}</div>
           <div className="hm-row">
             {week.map((dt,di)=>{
               if(!dt) return <div key={`e${di}`} className="hm-cell is-empty"/>
-              const s=score(dt),isT=dt===todayStr
+              const s=score(dt), isT=dt===todayStr
               const numC=s>=4?'rgba(255,255,255,.65)':'var(--c-text-300)'
+              const dots=getDots(dt)
               return(
                 <div key={dt} className={`hm-cell${isT?' is-today':''}`}
-                  style={{background:bg(s)}} onClick={()=>onDayClick(dt)}
-                  title={formatDate(dt)}>
+                  style={{background:bg(s)}} onClick={()=>onDayClick(dt)}>
                   <span className="hm-num" style={{color:numC}}>{new Date(dt+'T12:00:00').getDate()}</span>
+                  {dots.length>0&&(
+                    <div className="hm-dots">
+                      {dots.map((clr,j)=><div key={j} className="hm-dot" style={{background:clr,opacity:s>=4?0.9:0.75}}/>)}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -191,16 +243,29 @@ function ConsistencyCalendar({ tracking, onDayClick }) {
         </div>
       ))}
 
-      <div style={{display:'flex',alignItems:'center',gap:5,marginTop:8,justifyContent:'flex-end'}}>
-        <span style={{fontSize:9,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>0</span>
-        {['var(--c-base-2)','rgba(212,165,165,0.30)','rgba(212,165,165,0.60)','rgba(212,165,165,0.85)','rgba(212,165,165,1)'].map((c,i)=>(
-          <div key={i} style={{width:10,height:10,borderRadius:2,background:c,border:i===0?'1px solid var(--c-border)':'none'}}/>
+      {/* Legend */}
+      <div style={{display:'flex',alignItems:'center',gap:6,marginTop:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
+        {['Muito leve','Leve','Moderado','Consistente','Completo'].map((lbl,i)=>(
+          <div key={lbl} style={{display:'flex',alignItems:'center',gap:3}}>
+            <div style={{width:10,height:10,borderRadius:2,background:['var(--c-base-2)','rgba(212,165,165,0.30)','rgba(212,165,165,0.60)','rgba(212,165,165,0.80)','rgba(212,165,165,1)'][i],border:i===0?'1px solid var(--c-border)':'none'}}/>
+            <span style={{fontSize:8,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{lbl}</span>
+          </div>
         ))}
-        <span style={{fontSize:9,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>6</span>
+      </div>
+
+      {/* Dot legend */}
+      <div style={{display:'flex',gap:10,marginTop:8,flexWrap:'wrap'}}>
+        {[['#6BA8D4','Água'],['#8A9E8C','Treino'],['#C9A96E','Humor'],['#D4A5A5','Ciclo'],['#9B8FC4','Consulta']].map(([clr,lbl])=>(
+          <div key={lbl} style={{display:'flex',alignItems:'center',gap:4}}>
+            <div style={{width:6,height:6,borderRadius:'50%',background:clr}}/>
+            <span style={{fontSize:8,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{lbl}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
+
 
 /* ─── HEALTH SUMMARY GRID ───────────────────────────────────────── */
 function HealthSummaryGrid({ data, navigate }) {
@@ -294,6 +359,7 @@ function PendenciasHoje({ data, onAction }) {
     {id:'treino',     icon:Dumbbell,         label:'Registrar treino',      done:data?.todayTreino},
     {id:'refeicao',   icon:UtensilsCrossed,  label:'Registrar alimentação', done:data?.todayRefeicao},
     {id:'humor',      icon:Heart,            label:'Registrar humor',       done:data?.todayMood!=null},
+    {id:'skincare',   icon:Activity,         label:'Skincare',              done:(data?.todaySkincare||0)>=2, skincare:true, count:data?.todaySkincare||0},
   ]
   const pending = ITEMS.filter(i=>!i.done)
   const done    = ITEMS.filter(i=>i.done)
@@ -413,15 +479,69 @@ function DayDetailSheet({ date, userId, onClose }) {
   )
 }
 
+/* ─── SKINCARE MODAL ─────────────────────────────────────────────── */
+function SkincareModal({ userId, skincareAm, skincarePm, onClose, onSave }) {
+  const [am, setAm] = useState(skincareAm)
+  const [pm, setPm] = useState(skincarePm)
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    const todayStr = today()
+    const {data:ex} = await supabase.from('daily_tracking').select('id').eq('user_id',userId).eq('date',todayStr).maybeSingle()
+    if(ex) {
+      await supabase.from('daily_tracking').update({skincare_am:am, skincare_pm:pm}).eq('id',ex.id)
+    } else {
+      await supabase.from('daily_tracking').insert({user_id:userId,date:todayStr,skincare_am:am,skincare_pm:pm})
+    }
+    onSave?.(); onClose()
+  }
+
+  const done = (am?1:0)+(pm?1:0)
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+          <h2 className="sheet-title" style={{marginBottom:0}}>Skincare</h2>
+          <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
+        </div>
+        <div style={{display:'flex',gap:12,marginBottom:24}}>
+          {[{key:'am',label:'Manhã',val:am,set:setAm},{key:'pm',label:'Noite',val:pm,set:setPm}].map(({key,label,val,set})=>(
+            <button key={key} onClick={()=>set(v=>!v)} style={{
+              flex:1,padding:'18px 0',borderRadius:'var(--r-lg)',border:'none',cursor:'pointer',
+              background:val?'rgba(138,158,140,0.18)':'var(--c-base-1)',
+              boxShadow:val?'0 0 0 1.5px var(--c-sage)':'none',
+              display:'flex',flexDirection:'column',alignItems:'center',gap:10,
+            }}>
+              <div style={{width:40,height:40,borderRadius:'50%',background:val?'var(--c-sage)':'var(--c-base-2)',display:'flex',alignItems:'center',justifyContent:'center',transition:'background .15s'}}>
+                {val&&<Check size={20} strokeWidth={2.5} style={{color:'white'}}/>}
+              </div>
+              <span style={{fontFamily:'var(--font-ui)',fontSize:13,fontWeight:val?500:400,color:val?'var(--c-sage-deep)':'var(--c-text-500)'}}>{label}</span>
+            </button>
+          ))}
+        </div>
+        <p style={{fontFamily:'var(--font-editorial)',fontSize:14,color:'var(--c-text-400)',fontStyle:'italic',textAlign:'center',marginBottom:20}}>
+          {done===0?'Nenhuma etapa concluída':done===1?'1 de 2 etapas concluída':'Skincare completo hoje'}
+        </p>
+        <button className="btn-primary" onClick={save} disabled={saving}>{saving?'Salvando...':'Salvar'}</button>
+      </div>
+    </div>
+  )
+}
+
+
 /* ─── REGISTER MODAL ─────────────────────────────────────────────── */
-function RegisterModal({ type, userId, onClose, onSave }) {
+function RegisterModal({ type, userId, onClose, onSave, data }) {
+  if(type==='skincare') return <SkincareModal userId={userId} skincareAm={!!data?.skincare_am} skincarePm={!!data?.skincare_pm} onClose={onClose} onSave={onSave}/>
   const [val,setVal]=useState('')
   const [regDate,setRegDate]=useState(today())
   const [saving,setSaving]=useState(false)
   const [saved,setSaved]=useState(false)
   const cfg={
     peso:  {title:'Registrar peso', label:'Peso (kg)', placeholder:'0,0', field:'weight',     table:'physical_metrics'},
-    agua:  {title:'Registrar água', label:'Quantidade (ml)', placeholder:'2500',field:'water_ml',  table:'daily_tracking'},
+    agua:  {title:'Registrar água', label:'Adicionar água (ml)', placeholder:'500',field:'water_ml',  table:'daily_tracking'},
     sono:  {title:'Registrar sono', label:'Horas dormidas', placeholder:'7',   field:'sleep_hours',table:'daily_tracking'},
   }[type]
   if(!cfg) return null
@@ -434,9 +554,14 @@ function RegisterModal({ type, userId, onClose, onSave }) {
     if(cfg.table==='physical_metrics'){
       await supabase.from('physical_metrics').insert({user_id:userId,date:regDate,[cfg.field]:numVal})
     } else {
-      const{data:ex}=await supabase.from('daily_tracking').select('id').eq('user_id',userId).eq('date',regDate).maybeSingle()
-      if(ex) await supabase.from('daily_tracking').update({[cfg.field]:numVal}).eq('id',ex.id)
-      else   await supabase.from('daily_tracking').insert({user_id:userId,date:regDate,[cfg.field]:numVal})
+      const{data:ex}=await supabase.from('daily_tracking').select('id,water_ml').eq('user_id',userId).eq('date',regDate).maybeSingle()
+      if(ex){
+        // Água: acumula (soma) — outros campos: substituem
+        const newVal = cfg.field==='water_ml' ? (ex.water_ml||0)+numVal : numVal
+        await supabase.from('daily_tracking').update({[cfg.field]:newVal}).eq('id',ex.id)
+      } else {
+        await supabase.from('daily_tracking').insert({user_id:userId,date:regDate,[cfg.field]:numVal})
+      }
     }
     setSaved(true)
     setTimeout(()=>{onSave?.();onClose()},700)
@@ -515,6 +640,7 @@ export default function Home({ userId }) {
     else if(id==='treino')    navigate('/treinos')
     else if(id==='refeicao')  navigate('/diario')
     else if(id==='humor')     document.getElementById('mood-picker')?.scrollIntoView({behavior:'smooth'})
+  else if(id==='skincare')   setModal('skincare')
   }
 
   const today_=today()
@@ -590,7 +716,7 @@ export default function Home({ userId }) {
         <div style={{padding:'0 var(--page-pad-x)'}}>
           {loading
             ? <div style={{height:100}} className="loading-shimmer"/>
-            : <ConsistencyCalendar tracking={data?.tracking} onDayClick={setDaySheet}/>
+            : <ConsistencyCalendar tracking={data?.tracking} cycleByDate={data?.cycleByDate} consultDateSet={data?.consultDateSet} onDayClick={setDaySheet}/>
           }
         </div>
       </section>
@@ -633,7 +759,7 @@ export default function Home({ userId }) {
       )}
 
       {/* ─ MODALS ──────────────────────────────────────────────── */}
-      {modal&&<RegisterModal type={modal} userId={userId} onClose={()=>setModal(null)} onSave={reload}/>}
+      {modal&&<RegisterModal type={modal} userId={userId} data={data} onClose={()=>setModal(null)} onSave={reload}/>}
       {daySheet&&<DayDetailSheet date={daySheet} userId={userId} onClose={()=>setDaySheet(null)}/>}
     </div>
   )
