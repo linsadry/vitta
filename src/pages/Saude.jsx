@@ -385,6 +385,185 @@ function ExamesView({userId, labResults, onBack, onReload}) {
   )
 }
 
+
+// ─── HISTÓRICO ──────────────────────────────────────────────────
+const HIST_CATS = ['Vacina','Doença','Cirurgia','Procedimento','Internação','Diagnóstico','Sintoma importante','FIV','COVID / Gripe','Outro']
+const HIST_COLORS = {
+  'Vacina':'#8A9E8C','Doença':'#D4A5A5','Cirurgia':'#9B8FC4',
+  'Procedimento':'#C4B8D4','Internação':'#C48E8E','Diagnóstico':'#C9A96E',
+  'Sintoma importante':'#B8AEA9','FIV':'#C4B8D4','COVID / Gripe':'#D4A5A5','Outro':'#B8AEA9'
+}
+
+function HistoricoModal({userId, onClose, onSave}) {
+  const [f,setF]=useState({date:today(),category:'Vacina',title:'',description:'',provider:'',notes:''})
+  const [saving,setSaving]=useState(false)
+  const [done,setDone]=useState(false)
+  const set=(k,v)=>setF(p=>({...p,[k]:v}))
+  const save=async()=>{
+    if(!f.title||!f.date) return
+    setSaving(true)
+    const{error}=await supabase.from('vitta_historico').insert({user_id:userId,...f})
+    if(error){setSaving(false);return}
+    setDone(true);setTimeout(()=>{onSave?.();onClose()},700)
+  }
+  return(
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+          <h2 className="sheet-title" style={{marginBottom:0}}>Novo registro</h2>
+          <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
+        </div>
+        {done?(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12,padding:'24px 0'}}>
+            <div style={{width:52,height:52,borderRadius:'50%',background:'var(--c-sage-faint)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Check size={24} strokeWidth={2} style={{color:'var(--c-sage)'}}/>
+            </div>
+            <p style={{fontFamily:'var(--font-editorial)',fontSize:18,color:'var(--c-text-700)',fontStyle:'italic'}}>Registrado</p>
+          </div>
+        ):(
+          <>
+            <div style={{marginBottom:12}}>
+              <label className="input-label">Data</label>
+              <input className="input-field" type="date" value={f.date} onChange={e=>set('date',e.target.value)}/>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label className="input-label">Categoria</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
+                {HIST_CATS.map(cat=>(
+                  <button key={cat} onClick={()=>set('category',cat)} style={{
+                    padding:'6px 12px',borderRadius:'var(--r-full)',border:'none',cursor:'pointer',
+                    background:f.category===cat?HIST_COLORS[cat]+'28':'var(--c-base-2)',
+                    color:f.category===cat?HIST_COLORS[cat]:'var(--c-text-500)',
+                    fontFamily:'var(--font-ui)',fontSize:12,fontWeight:f.category===cat?500:400,
+                    boxShadow:f.category===cat?`0 0 0 1.5px ${HIST_COLORS[cat]}`:'none',
+                  }}>{cat}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label className="input-label">Título</label>
+              <input className="input-field" type="text" placeholder="Ex: Vacina Influenza, Diagnóstico de Anemia" value={f.title} onChange={e=>set('title',e.target.value)}/>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label className="input-label">Descrição</label>
+              <textarea className="input-field" rows={3} value={f.description} onChange={e=>set('description',e.target.value)} style={{resize:'none'}} placeholder="Detalhes, observações, resultados..."/>
+            </div>
+            <div style={{marginBottom:20}}>
+              <label className="input-label">Médico / Instituição</label>
+              <input className="input-field" type="text" placeholder="Opcional" value={f.provider} onChange={e=>set('provider',e.target.value)}/>
+            </div>
+            <button className="btn-primary" onClick={save} disabled={saving||!f.title||!f.date}>
+              {saving?'Salvando...':'Salvar registro'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HistoricoView({userId, onBack, onReload}) {
+  const [items,setItems]=useState([])
+  const [loading,setLoading]=useState(true)
+  const [modal,setModal]=useState(false)
+  const [filterCat,setFilterCat]=useState('Todos')
+
+  const load=useCallback(async()=>{
+    if(!userId) return
+    setLoading(true)
+    const{data}=await supabase.from('vitta_historico').select('*').eq('user_id',userId).order('date',{ascending:false})
+    setItems(data||[])
+    setLoading(false)
+  },[userId])
+
+  useEffect(()=>{load()},[load])
+
+  const filtered=filterCat==='Todos'?items:items.filter(i=>i.category===filterCat)
+
+  // Group by year then month
+  const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const byYear={}
+  for(const item of filtered){
+    const yr=item.date.slice(0,4)
+    const mo=parseInt(item.date.slice(5,7))-1
+    if(!byYear[yr])byYear[yr]={}
+    if(!byYear[yr][mo])byYear[yr][mo]=[]
+    byYear[yr][mo].push(item)
+  }
+  const years=Object.keys(byYear).sort((a,b)=>b-a)
+  const usedCats=['Todos',...new Set(items.map(i=>i.category))]
+
+  return(
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:12,padding:'52px var(--page-pad-x) 20px',position:'relative',overflow:'hidden'}}>
+        <PageBotanical/>
+        <button onClick={onBack} className="btn-ghost" style={{padding:8,position:'relative',zIndex:1}}><ChevronLeft size={20} strokeWidth={1.8}/></button>
+        <div style={{position:'relative',zIndex:1}}>
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-2xl)',fontWeight:500,color:'var(--c-text-900)',letterSpacing:'-0.02em'}}>Histórico médico</h1>
+        </div>
+      </div>
+      <div style={{padding:'0 var(--page-pad-x)',marginBottom:16}}>
+        <button className="btn-primary" onClick={()=>setModal(true)}>+ Novo registro</button>
+      </div>
+      {items.length>1&&(
+        <div style={{padding:'0 var(--page-pad-x)',marginBottom:16,display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
+          {usedCats.map(cat=>(
+            <button key={cat} onClick={()=>setFilterCat(cat)} style={{
+              padding:'6px 13px',borderRadius:'var(--r-full)',border:'none',cursor:'pointer',flexShrink:0,
+              background:filterCat===cat?'var(--c-text-900)':'var(--c-base-2)',
+              color:filterCat===cat?'var(--c-base-0)':'var(--c-text-500)',
+              fontFamily:'var(--font-ui)',fontSize:12,fontWeight:filterCat===cat?500:400,
+            }}>{cat}</button>
+          ))}
+        </div>
+      )}
+      <div style={{padding:'0 var(--page-pad-x)'}}>
+        {loading&&<div style={{height:120}} className="loading-shimmer card"/>}
+        {!loading&&filtered.length===0&&(
+          <div className="empty-state" style={{paddingTop:40}}>
+            <CalendarDays size={32} style={{color:'var(--c-text-100)'}}/>
+            <p className="empty-state-text">Nenhum registro no histórico</p>
+            <p style={{fontSize:12,color:'var(--c-text-300)',fontFamily:'var(--font-ui)',textAlign:'center',lineHeight:1.6,maxWidth:260}}>Registre vacinas, doenças, cirurgias e marcos importantes da sua jornada de saúde</p>
+          </div>
+        )}
+        {!loading&&years.map(yr=>(
+          <div key={yr} style={{marginBottom:28}}>
+            <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:500,color:'var(--c-text-900)',marginBottom:16,letterSpacing:'-0.02em'}}>{yr}</div>
+            {Object.keys(byYear[yr]).sort((a,b)=>b-a).map(mo=>(
+              <div key={mo} style={{marginBottom:16}}>
+                <div style={{fontFamily:'var(--font-ui)',fontSize:11,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{MONTHS[parseInt(mo)]}</div>
+                <div className="card" style={{padding:'0 16px'}}>
+                  {byYear[yr][mo].map((item,i)=>{
+                    const color=HIST_COLORS[item.category]||'var(--c-text-300)'
+                    return(
+                      <div key={item.id} style={{padding:'14px 0',borderBottom:i<byYear[yr][mo].length-1?'1px solid var(--c-border-light)':'none'}}>
+                        <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+                          <div style={{width:3,borderRadius:2,background:color,flexShrink:0,alignSelf:'stretch',marginTop:2}}/>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                              <span style={{fontSize:9,color:color,fontFamily:'var(--font-ui)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{item.category}</span>
+                              <span style={{fontSize:10,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{new Date(item.date+'T12:00:00').getDate()} de {MONTHS[parseInt(item.date.slice(5,7))-1].toLowerCase()}</span>
+                            </div>
+                            <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)',marginBottom:item.description?4:0}}>{item.title}</div>
+                            {item.description&&<p style={{fontFamily:'var(--font-editorial)',fontSize:13,color:'var(--c-text-600)',fontStyle:'italic',lineHeight:1.5,margin:0}}>{item.description}</p>}
+                            {item.provider&&<div style={{fontSize:11,color:'var(--c-text-400)',fontFamily:'var(--font-ui)',marginTop:4}}>{item.provider}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {modal&&<HistoricoModal userId={userId} onClose={()=>setModal(false)} onSave={()=>{setModal(false);load()}}/>}
+    </div>
+  )
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────
 export default function Saude({userId}) {
   const [view,setView] = useState('overview')
@@ -392,6 +571,7 @@ export default function Saude({userId}) {
   const {data,loading,reload} = useOverviewData(userId)
   const navigate = useNavigate()
 
+  if (view==='historico') return <HistoricoView userId={userId} onBack={()=>setView('overview')} onReload={reload}/>
   if (view==='consultas') return <ConsultasView userId={userId} consultas={data?.allConsultas||[]} onBack={()=>setView('overview')} onReload={reload}/>
   if (view==='medicamentos') return <MedicamentosView userId={userId} meds={data?.meds||[]} onBack={()=>setView('overview')} onReload={reload}/>
   if (view==='exames') return <ExamesView userId={userId} labResults={data?.labResults||[]} onBack={()=>setView('overview')} onReload={reload}/>
@@ -458,6 +638,8 @@ export default function Saude({userId}) {
           stats={[{value:d.activeMeds?.length||0,label:'em uso'},{value:d.meds?.filter(m=>!m.active).length||0,label:'histórico'}]}/>
         <ModuleCard icon={FlaskConical} title="Exames" color="var(--c-sage)" onOpen={()=>setView('exames')}
           stats={[{value:d.labResults?.filter(e=>e.status==='agendado').length||0,label:'agendados'},{value:d.labResults?.filter(e=>e.status==='realizado'||!e.status).length||0,label:'realizados'}]}/>
+        <ModuleCard icon={Activity} title="Histórico" color="var(--c-gold)" onOpen={()=>setView('historico')}
+          stats={[{value:'—',label:'eventos registrados'},{value:'—',label:'anos de história'}]}/>
       </section>
 
       {/* Saúde Reprodutiva */}
