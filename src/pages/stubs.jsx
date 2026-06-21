@@ -23,7 +23,3 @@ function StubPage({ icon: Icon, title, subtitle, color }) {
 export function IA() {
   return <StubPage icon={Sparkles} title="Assistente Vitta" subtitle="Análise personalizada dos seus hábitos, padrões e evolução." color="var(--c-gold)" />
 }
-
-export function Jornada() {
-  return <StubPage icon={BookMarked} title="Minha Jornada" subtitle="Toda a sua história de saúde reunida em uma linha do tempo pessoal." color="var(--c-lavender)" />
-}
