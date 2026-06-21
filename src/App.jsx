@@ -12,7 +12,8 @@ import Treinos from './pages/Treinos'
 import Ciclo from './pages/Ciclo'
 import Fiv from './pages/Fiv'
 import Diario from './pages/Diario'
-import { IA, Jornada } from './pages/stubs'
+import { IA } from './pages/stubs'
+import Jornada from './pages/Jornada'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -53,7 +54,7 @@ function AppShell() {
           <Route path="/fiv"      element={<Fiv      userId={uid} />} />
           <Route path="/diario"   element={<Diario   userId={uid} />} />
           <Route path="/ia"       element={<IA />} />
-          <Route path="/jornada"  element={<Jornada />} />
+          <Route path="/jornada"  element={<Jornada userId={uid} />} />
         </Routes>
       </main>
       <BottomNav />
