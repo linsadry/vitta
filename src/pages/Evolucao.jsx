@@ -262,6 +262,84 @@ function RegModal({ type, userId, onClose, onSave }) {
   )
 }
 
+/* ─── EVOLUÇÃO DE INDICADORES ────────────────────────────────────── */
+function MiniChart({ data, color }) {
+  if (!data || data.length < 2) {
+    return <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>1 ponto</span>
+    </div>
+  }
+  const W = 200, H = 44, PAD = { t: 6, r: 8, b: 6, l: 8 }
+  const vals = data.map(d => parseFloat(d.result)).filter(v => !isNaN(v))
+  if (!vals.length) return null
+  const minV = Math.min(...vals), maxV = Math.max(...vals)
+  const range = Math.max(maxV - minV, 0.01)
+  const xS = (i) => PAD.l + (i / (data.length - 1)) * (W - PAD.l - PAD.r)
+  const yS = (v) => PAD.t + (H - PAD.t - PAD.b) - ((v - minV) / range) * (H - PAD.t - PAD.b)
+  const smooth = (pts) => {
+    let d = `M ${pts[0].x} ${pts[0].y}`
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i-1], cur = pts[i]
+      d += ` C ${p.x + (cur.x-p.x)/3} ${p.y} ${cur.x - (cur.x-p.x)/3} ${cur.y} ${cur.x} ${cur.y}`
+    }
+    return d
+  }
+  const pts = data.map((d, i) => ({ x: xS(i), y: yS(parseFloat(d.result)) }))
+  const line = smooth(pts)
+  const last = pts[pts.length - 1]
+  const trend = vals[vals.length-1] > vals[0] ? '↑' : vals[vals.length-1] < vals[0] ? '↓' : '→'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ flex: 1, height: 44 }}>
+        <path d={line} stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={last.x} cy={last.y} r="3" fill="white" stroke={color} strokeWidth="1.5" />
+      </svg>
+      <span style={{ fontSize: 12, color, fontWeight: 500 }}>{trend}</span>
+    </div>
+  )
+}
+
+function IndicadoresSection({ labResults }) {
+  const COLORS = ['#D4A5A5','#8A9E8C','#C9A96E','#9B8FC4','#6BA8D4','#C48E8E']
+  const grouped = {}
+  for (const r of labResults || []) {
+    if (!grouped[r.category]) grouped[r.category] = []
+    grouped[r.category].push(r)
+  }
+  const cats = Object.keys(grouped).filter(k => grouped[k].length >= 1)
+  if (!cats.length) return null
+  return (
+    <section style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
+      <h2 className="section-title" style={{ marginBottom: 16 }}>Evolução de indicadores</h2>
+      {cats.map((cat, idx) => {
+        const items = grouped[cat].sort((a, b) => a.date.localeCompare(b.date))
+        const last = items[items.length - 1]
+        const color = COLORS[idx % COLORS.length]
+        return (
+          <div key={cat} className="card" style={{ padding: '14px 16px', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500, color: 'var(--c-text-900)' }}>{cat}</div>
+                <div style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', marginTop: 2 }}>
+                  {items.length} medição{items.length !== 1 ? 'ões' : ''}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--c-text-900)' }}>
+                  {last?.result}
+                </div>
+                {last?.unit && <div style={{ fontSize: 10, color: 'var(--c-text-300)' }}>{last.unit}</div>}
+              </div>
+            </div>
+            <MiniChart data={items} color={color} />
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
+
 /* ─── MAIN PAGE ──────────────────────────────────────────────────── */
 export default function Evolucao({ userId }) {
   const [tab, setTab]       = useState('corpo')
@@ -279,17 +357,19 @@ export default function Evolucao({ userId }) {
       { data: physList },
       { data: trackList },
       { data: settings },
+      { data: labResults },
     ] = await Promise.all([
       supabase.from('physical_metrics').select('*').eq('user_id', userId).gte('date', d90).order('date'),
       supabase.from('daily_tracking').select('date,water_ml,sleep_hours,protein_g,strength_done,aerobic_done').eq('user_id', userId).gte('date', d7).order('date'),
       supabase.from('fitness_settings').select('weight_goal1_kg').eq('user_id', userId).maybeSingle(),
+      supabase.from('lab_results').select('category,date,result,unit,status').eq('user_id', userId).eq('status', 'realizado').not('result', 'is', null).order('date'),
     ])
 
     const latest  = physList?.length ? physList[physList.length - 1] : null
     const prev    = physList?.length > 1 ? physList[physList.length - 2] : null
     const weightHistory = (physList || []).filter(r => r.weight).map(r => ({ date: r.date, weight: r.weight }))
 
-    setData({ physList: physList || [], latest, prev, weightHistory, trackList: trackList || [], goalKg: settings?.weight_goal1_kg })
+    setData({ physList: physList || [], latest, prev, weightHistory, trackList: trackList || [], goalKg: settings?.weight_goal1_kg, labResults: labResults || [] })
     setLoading(false)
   }, [userId])
 
@@ -377,7 +457,7 @@ export default function Evolucao({ userId }) {
           </section>
 
           {/* Action buttons */}
-          <div style={{ padding: '0 var(--page-pad-x)', display: 'flex', gap: 10 }}>
+          <div style={{ padding: '0 var(--page-pad-x)', display: 'flex', gap: 10, marginBottom: 32 }}>
             <button className="btn-primary" style={{ flex: 1 }} onClick={() => setModal('peso')}>
               + Registrar peso
             </button>
@@ -386,6 +466,11 @@ export default function Evolucao({ userId }) {
               + Medidas
             </button>
           </div>
+
+          {/* Evolução de indicadores */}
+          {data?.labResults?.length > 0 && (
+            <IndicadoresSection labResults={data.labResults} />
+          )}
         </>
       )}
 
