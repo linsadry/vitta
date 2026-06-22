@@ -14,6 +14,7 @@ import Ciclo from './pages/Ciclo'
 import Fiv from './pages/Fiv'
 import Diario from './pages/Diario'
 import IA from './pages/IA'
+import Configuracoes from './pages/Configuracoes'
 import Jornada from './pages/Jornada'
 
 function ScrollToTop() {
@@ -28,6 +29,12 @@ function ScrollToTop() {
 function AppShell() {
   const { loading, supaUser, pinVerified, pinExists, verifyPin, sendOtp, verifyOtp } = useAuth()
 
+  // Agenda lembretes de medicamentos — hook SEMPRE roda, antes de qualquer return condicional
+  const uid = supaUser?.id
+  useEffect(() => {
+    if (uid && pinVerified) scheduleMedReminders(uid)
+  }, [uid, pinVerified])
+
   if (loading) {
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'var(--c-base-0)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -39,13 +46,6 @@ function AppShell() {
 
   if (!supaUser) return <AuthScreen sendOtp={sendOtp} verifyOtp={verifyOtp} />
   if (!pinVerified) return <PinScreen pinExists={pinExists} verifyPin={verifyPin} onSuccess={() => {}} />
-
-  const uid = supaUser.id
-
-  // Agenda lembretes de medicamentos quando autenticado
-  useEffect(() => {
-    if (uid) scheduleMedReminders(uid)
-  }, [uid])
 
   return (
     <div className="app-shell">
@@ -60,6 +60,7 @@ function AppShell() {
           <Route path="/fiv"      element={<Fiv      userId={uid} />} />
           <Route path="/diario"   element={<Diario   userId={uid} />} />
           <Route path="/ia"       element={<IA       userId={uid} />} />
+          <Route path="/config"   element={<Configuracoes userId={uid} onBack={()=>window.history.back()} />} />
           <Route path="/jornada"  element={<Jornada userId={uid} />} />
         </Routes>
       </main>
