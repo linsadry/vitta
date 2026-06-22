@@ -529,7 +529,6 @@ function SkincareModal({ userId, skincareAm, skincarePm, onClose, onSave }) {
 
 /* ─── REGISTER MODAL ─────────────────────────────────────────────── */
 function RegisterModal({ type, userId, onClose, onSave, data }) {
-  if(type==='skincare') return <SkincareModal userId={userId} skincareAm={!!data?.skincare_am} skincarePm={!!data?.skincare_pm} onClose={onClose} onSave={onSave}/>
   const [val,setVal]=useState('')
   const [regDate,setRegDate]=useState(today())
   const [saving,setSaving]=useState(false)
@@ -765,7 +764,9 @@ export default function Home({ userId }) {
       )}
 
       {/* ─ MODALS ──────────────────────────────────────────────── */}
-      {modal&&<RegisterModal type={modal} userId={userId} data={data} onClose={()=>setModal(null)} onSave={reload}/>}
+      {modal==='skincare'
+        ? <SkincareModal userId={userId} skincareAm={!!data?.skincare_am} skincarePm={!!data?.skincare_pm} onClose={()=>setModal(null)} onSave={reload}/>
+        : modal && <RegisterModal type={modal} userId={userId} data={data} onClose={()=>setModal(null)} onSave={reload}/>}
       {daySheet&&<DayDetailSheet date={daySheet} userId={userId} onClose={()=>setDaySheet(null)}/>}
     </div>
   )
