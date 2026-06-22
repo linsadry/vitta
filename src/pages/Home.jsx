@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Scale, Droplets, Moon, Dumbbell, UtensilsCrossed, BookOpen,
-  FlaskConical, CalendarDays, X, Check, ChevronRight, Heart, Activity, Settings
+  FlaskConical, CalendarDays, X, Check, ChevronRight, ChevronLeft, Heart, Activity, Settings
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { HomeHeaderBotanical } from '../components/BotanicalBg'
