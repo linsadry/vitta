@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, Plus, X, Check, Stethoscope, Pill, FlaskConical,
-         Scale, Moon, Droplets, Heart, ChevronRight, Calendar, Activity } from 'lucide-react'
+         Scale, Moon, Droplets, Heart, ChevronRight, Calendar, CalendarDays, Activity } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 import { today, daysAgo, formatDate, formatDateShort, fmtWeight, fmtSleep, fmtWater } from '../lib/utils'
