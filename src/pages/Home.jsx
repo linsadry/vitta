@@ -6,7 +6,6 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { HomeHeaderBotanical } from '../components/BotanicalBg'
-import Configuracoes from './Configuracoes'
 import {
   today, daysAgo, last35Days, greeting, dailyPhrase,
   formatDate, formatDateShort, fmtWeight, fmtSleep, fmtWater
@@ -598,7 +597,6 @@ function RegisterModal({ type, userId, onClose, onSave, data }) {
 
 /* ─── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function Home({ userId }) {
-  const [showConfig,setShowConfig]=useState(false)
   const [hmYear,setHmYear]=useState(new Date().getFullYear())
   const [hmMonth,setHmMonth]=useState(new Date().getMonth())
   const {data,loading,reload}=useHomeData(userId)
@@ -646,15 +644,13 @@ export default function Home({ userId }) {
   const today_=today()
   const upcomingEvents = data?.upConsults?.map(c=>({date:c.date,type:'consultation',title:c.specialty||'Consulta',subtitle:c.doctor||c.location})) || []
 
-  if (showConfig) return <Configuracoes userId={userId} onBack={()=>{setShowConfig(false);reload()}}/>
-
   return (
     <div style={{paddingBottom:8}}>
 
       {/* ─ HEADER ─────────────────────────────────────────────── */}
       <div style={{position:'relative',padding:'52px var(--page-pad-x) 20px',overflow:'hidden',minHeight:160}}>
         <HomeHeaderBotanical/>
-        <button onClick={()=>setShowConfig(true)} className="btn-ghost" style={{position:'absolute',top:52,right:'var(--page-pad-x)',zIndex:2,padding:8}}>
+        <button onClick={()=>navigate('/config')} className="btn-ghost" style={{position:'absolute',top:52,right:'var(--page-pad-x)',zIndex:2,padding:8}}>
           <Settings size={20} strokeWidth={1.6} style={{color:'var(--c-text-300)'}}/>
         </button>
         <div style={{position:'relative',zIndex:1}}>
