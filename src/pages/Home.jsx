@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Scale, Droplets, Moon, Dumbbell, UtensilsCrossed, BookOpen,
-  FlaskConical, CalendarDays, X, Check, ChevronRight, Heart, Activity
+  FlaskConical, CalendarDays, X, Check, ChevronRight, Heart, Activity, Settings
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { HomeHeaderBotanical } from '../components/BotanicalBg'
+import Configuracoes from './Configuracoes'
 import {
   today, daysAgo, last35Days, greeting, dailyPhrase,
   formatDate, formatDateShort, fmtWeight, fmtSleep, fmtWater
@@ -71,9 +72,9 @@ function useHomeData(userId) {
       {data:tracking},{data:weights},{data:firstW},
       {data:nextConsult},{data:nextExam},{data:fivStages},
       {data:todayWk},{data:todayMeal},{data:todayDiary},
-      {data:cycleEntries},{data:upConsults},{data:pastConsults},
+      {data:cycleEntries},{data:upConsults},{data:pastConsults},{data:profile},
     ] = await Promise.all([
-      supabase.from('daily_tracking').select('*').eq('user_id',userId).gte('date',d35).order('date',{ascending:false}),
+      supabase.from('daily_tracking').select('*').eq('user_id',userId).gte('date',daysAgo(120)).order('date',{ascending:false}),
       supabase.from('physical_metrics').select('weight,date').eq('user_id',userId).order('date',{ascending:false}).limit(2),
       supabase.from('physical_metrics').select('weight,date').eq('user_id',userId).order('date').limit(1).maybeSingle(),
       supabase.from('health_consultations').select('date,specialty,doctor').eq('user_id',userId).gte('date',todayStr).order('date').limit(1).maybeSingle(),
@@ -85,6 +86,7 @@ function useHomeData(userId) {
       supabase.from('cycle_entries').select('date,type').eq('user_id',userId).gte('date',d90).order('date'),
       supabase.from('health_consultations').select('*').eq('user_id',userId).gte('date',todayStr).order('date').limit(4),
       supabase.from('health_consultations').select('date').eq('user_id',userId).gte('date',d35).lt('date',todayStr).order('date'),
+      supabase.from('vitta_profile').select('*').eq('user_id',userId).maybeSingle(),
     ])
 
     const todayTracking=(tracking||[]).find(d=>d.date===todayStr)
@@ -118,6 +120,8 @@ function useHomeData(userId) {
       skincare_pm:!!todayTracking?.skincare_pm,
       cycle, cycleByDate, consultDateSet,
       upConsults:upConsults||[],
+      profile: profile||{},
+      displayName: profile?.display_name||'Adriana',
     })
     setLoading(false)
   },[userId])
@@ -127,10 +131,10 @@ function useHomeData(userId) {
 }
 
 /* ─── CONSISTENCY HEATMAP (enhanced) ──────────────────────────── */
-function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick }) {
+function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick, year, month, onPrevMonth, onNextMonth }) {
   const todayStr = today()
   const byDate = Object.fromEntries((tracking||[]).map(t=>[t.date,t]))
-  const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+  const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
   const score = (dt) => {
     const r=byDate[dt]; if(!r) return 0; let n=0
@@ -139,7 +143,6 @@ function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick
     if(r.mood) n++; if(r.notes) n++
     return Math.min(n,6)
   }
-
   const bg = (s) => {
     if(s===0) return 'var(--c-base-2)'
     if(s<=2)  return 'rgba(212,165,165,0.30)'
@@ -148,9 +151,7 @@ function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick
     return 'rgba(212,165,165,1.00)'
   }
 
-  const LEGEND = ['Muito leve','Leve','Moderado','Consistente','Completo']
-
-  // Streak calculation
+  // Streak (always counts back from today regardless of viewed month)
   const streak = (() => {
     let count=0, curr=todayStr
     while(true){
@@ -163,24 +164,24 @@ function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick
     return count
   })()
 
-  // Dots per day (up to 4 colored dots)
   const getDots = (dt) => {
     const dots=[]
     const r=byDate[dt]
-    if(r?.water_ml>0)          dots.push('#6BA8D4')  // água: azul
-    if(r?.strength_done||r?.aerobic_done) dots.push('#8A9E8C')  // treino: sage
-    if(r?.mood)                 dots.push('#C9A96E')  // humor: ouro
-    if((cycleByDate||{})[dt]?.some(e=>e.type==='menstruacao')) dots.push('#D4A5A5')  // ciclo: rosa
-    if((consultDateSet||new Set()).has(dt)) dots.push('#9B8FC4')  // consulta: lavanda
+    if(r?.water_ml>0)          dots.push('#6BA8D4')
+    if(r?.strength_done||r?.aerobic_done) dots.push('#8A9E8C')
+    if(r?.mood)                 dots.push('#C9A96E')
+    if((cycleByDate||{})[dt]?.some(e=>e.type==='menstruacao')) dots.push('#D4A5A5')
+    if((consultDateSet||new Set()).has(dt)) dots.push('#9B8FC4')
     return dots.slice(0,4)
   }
 
-  const days=last35Days()
-  const firstDay=new Date(days[0]+'T12:00:00').getDay()
-  const offset=(firstDay+6)%7
-  const grid=[...Array(offset).fill(null),...days]
-  const weeks=[]; for(let i=0;i<grid.length;i+=7) weeks.push(grid.slice(i,i+7))
-  const monthLabel=(w)=>{const f=w.find(d=>d); if(!f) return ''; const d=new Date(f+'T12:00:00'); if(d.getDate()<=7) return MONTHS[d.getMonth()]; return ''}
+  // Build month grid (timezone-safe)
+  const dim = new Date(year, month+1, 0).getDate()
+  const firstDOW = (new Date(year, month, 1).getDay()+6)%7  // Mon=0
+  const dayStr = (d) => `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+  const cells = [...Array(firstDOW).fill(null), ...Array.from({length:dim},(_,i)=>i+1)]
+  const isCurrentMonth = year===new Date().getFullYear() && month===new Date().getMonth()
+  const isFutureMonth = new Date(year, month, 1) > new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 
   return (
     <div>
@@ -194,57 +195,52 @@ function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick
         </div>
       )}
 
-      <style>{`
-        .hm-grid{display:grid;grid-template-columns:24px 1fr;gap:0 4px}
-        .hm-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
-        .hm-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
-        .hm-cell{width:100%;max-width:40px;aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;cursor:pointer;box-sizing:border-box;transition:transform .1s;gap:2px}
-        .hm-cell:active{transform:scale(.88)}
-        .hm-cell.is-today{box-shadow:0 0 0 1.5px var(--c-rose-mid)}
-        .hm-cell.is-empty{background:transparent!important;cursor:default}
-        .hm-num{font-family:var(--font-ui);font-size:9px;font-weight:400;pointer-events:none;line-height:1}
-        .hm-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
-        .hm-dot{width:3px;height:3px;border-radius:50%;flex-shrink:0}
-        .hm-mo{font-family:var(--font-ui);font-size:9px;color:var(--c-text-300);text-align:right;text-transform:uppercase;letter-spacing:.04em;padding-top:4px}
-      `}</style>
-
-      {/* DOW headers */}
-      <div className="hm-grid"><div/>
-        <div className="hm-dow-row">
-          {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>(
-            <div key={d} style={{textAlign:'center',fontSize:9,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{d}</div>
-          ))}
-        </div>
+      {/* Month navigation */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+        <button onClick={onPrevMonth} style={{background:'none',border:'none',cursor:'pointer',padding:6,color:'var(--c-text-400)'}}>
+          <ChevronLeft size={18} strokeWidth={1.8}/>
+        </button>
+        <span style={{fontFamily:'var(--font-display)',fontSize:16,fontWeight:500,color:'var(--c-text-900)'}}>{MONTHS[month]} {year}</span>
+        <button onClick={isFutureMonth?undefined:onNextMonth} disabled={isCurrentMonth} style={{background:'none',border:'none',cursor:isCurrentMonth?'default':'pointer',padding:6,color:isCurrentMonth?'var(--c-text-100)':'var(--c-text-400)',opacity:isCurrentMonth?0.4:1}}>
+          <ChevronRight size={18} strokeWidth={1.8}/>
+        </button>
       </div>
 
-      {/* Week rows */}
-      {weeks.map((week,wi)=>(
-        <div key={wi} className="hm-grid">
-          <div className="hm-mo">{monthLabel(week)}</div>
-          <div className="hm-row">
-            {week.map((dt,di)=>{
-              if(!dt) return <div key={`e${di}`} className="hm-cell is-empty"/>
-              const s=score(dt), isT=dt===todayStr
-              const numC=s>=4?'rgba(255,255,255,.65)':'var(--c-text-300)'
-              const dots=getDots(dt)
-              return(
-                <div key={dt} className={`hm-cell${isT?' is-today':''}`}
-                  style={{background:bg(s)}} onClick={()=>onDayClick(dt)}>
-                  <span className="hm-num" style={{color:numC}}>{new Date(dt+'T12:00:00').getDate()}</span>
-                  {dots.length>0&&(
-                    <div className="hm-dots">
-                      {dots.map((clr,j)=><div key={j} className="hm-dot" style={{background:clr,opacity:s>=4?0.9:0.75}}/>)}
-                    </div>
-                  )}
+      {/* DOW headers */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:5}}>
+        {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>(
+          <div key={d} style={{textAlign:'center',fontSize:9,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>{d}</div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
+        {cells.map((day,i)=>{
+          if(!day) return <div key={`e${i}`}/>
+          const dt=dayStr(day), s=score(dt), isT=dt===todayStr, isFuture=dt>todayStr
+          const numC=s>=4?'rgba(255,255,255,.7)':'var(--c-text-400)'
+          const dots=getDots(dt)
+          return(
+            <div key={dt} onClick={()=>!isFuture&&onDayClick(dt)} style={{
+              aspectRatio:'1',borderRadius:6,background:isFuture?'transparent':bg(s),
+              border:isFuture?'1px dashed var(--c-border-light)':'none',
+              display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+              cursor:isFuture?'default':'pointer',gap:2,
+              boxShadow:isT?'0 0 0 1.5px var(--c-rose-mid)':'none',opacity:isFuture?0.4:1,
+            }}>
+              <span style={{fontFamily:'var(--font-ui)',fontSize:11,fontWeight:isT?600:400,color:isFuture?'var(--c-text-200)':numC,lineHeight:1}}>{day}</span>
+              {dots.length>0&&(
+                <div style={{display:'flex',gap:2}}>
+                  {dots.map((clr,j)=><div key={j} style={{width:3,height:3,borderRadius:'50%',background:clr,opacity:s>=4?0.9:0.75}}/>)}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
+              )}
+            </div>
+          )
+        })}
+      </div>
 
       {/* Legend */}
-      <div style={{display:'flex',alignItems:'center',gap:6,marginTop:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginTop:12,justifyContent:'flex-end',flexWrap:'wrap'}}>
         {['Muito leve','Leve','Moderado','Consistente','Completo'].map((lbl,i)=>(
           <div key={lbl} style={{display:'flex',alignItems:'center',gap:3}}>
             <div style={{width:10,height:10,borderRadius:2,background:['var(--c-base-2)','rgba(212,165,165,0.30)','rgba(212,165,165,0.60)','rgba(212,165,165,0.80)','rgba(212,165,165,1)'][i],border:i===0?'1px solid var(--c-border)':'none'}}/>
@@ -265,7 +261,6 @@ function ConsistencyCalendar({ tracking, cycleByDate, consultDateSet, onDayClick
     </div>
   )
 }
-
 
 /* ─── HEALTH SUMMARY GRID ───────────────────────────────────────── */
 function HealthSummaryGrid({ data, navigate }) {
@@ -604,6 +599,9 @@ function RegisterModal({ type, userId, onClose, onSave, data }) {
 
 /* ─── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function Home({ userId }) {
+  const [showConfig,setShowConfig]=useState(false)
+  const [hmYear,setHmYear]=useState(new Date().getFullYear())
+  const [hmMonth,setHmMonth]=useState(new Date().getMonth())
   const {data,loading,reload}=useHomeData(userId)
   const [modal,setModal]=useState(null)   // 'peso'|'agua'|'sono'
   const [daySheet,setDaySheet]=useState(null) // date string
@@ -635,6 +633,9 @@ export default function Home({ userId }) {
     reload()
   }
 
+  const hmPrev=()=>{ if(hmMonth===0){setHmYear(y=>y-1);setHmMonth(11)}else setHmMonth(m=>m-1) }
+  const hmNext=()=>{ if(hmMonth===11){setHmYear(y=>y+1);setHmMonth(0)}else setHmMonth(m=>m+1) }
+
   const handleAction=(id)=>{
     if(['peso','agua','sono'].includes(id)) setModal(id)
     else if(id==='treino')    navigate('/treinos')
@@ -646,18 +647,23 @@ export default function Home({ userId }) {
   const today_=today()
   const upcomingEvents = data?.upConsults?.map(c=>({date:c.date,type:'consultation',title:c.specialty||'Consulta',subtitle:c.doctor||c.location})) || []
 
+  if (showConfig) return <Configuracoes userId={userId} onBack={()=>{setShowConfig(false);reload()}}/>
+
   return (
     <div style={{paddingBottom:8}}>
 
       {/* ─ HEADER ─────────────────────────────────────────────── */}
       <div style={{position:'relative',padding:'52px var(--page-pad-x) 20px',overflow:'hidden',minHeight:160}}>
         <HomeHeaderBotanical/>
+        <button onClick={()=>setShowConfig(true)} className="btn-ghost" style={{position:'absolute',top:52,right:'var(--page-pad-x)',zIndex:2,padding:8}}>
+          <Settings size={20} strokeWidth={1.6} style={{color:'var(--c-text-300)'}}/>
+        </button>
         <div style={{position:'relative',zIndex:1}}>
           <p style={{fontFamily:'var(--font-ui)',fontSize:'var(--text-sm)',color:'var(--c-text-300)',marginBottom:4,letterSpacing:'.04em',textTransform:'uppercase'}}>
             {new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}
           </p>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-3xl)',fontWeight:500,color:'var(--c-text-900)',letterSpacing:'-0.02em',marginBottom:8,lineHeight:1.1}}>
-            {greeting()},<br/>Adriana
+            {greeting()},<br/>{data?.displayName||'Adriana'}
           </h1>
           <p style={{fontFamily:'var(--font-editorial)',fontSize:'var(--text-md)',color:'var(--c-text-500)',fontStyle:'italic',lineHeight:1.5}}>{dailyPhrase()}</p>
         </div>
@@ -716,7 +722,7 @@ export default function Home({ userId }) {
         <div style={{padding:'0 var(--page-pad-x)'}}>
           {loading
             ? <div style={{height:100}} className="loading-shimmer"/>
-            : <ConsistencyCalendar tracking={data?.tracking} cycleByDate={data?.cycleByDate} consultDateSet={data?.consultDateSet} onDayClick={setDaySheet}/>
+            : <ConsistencyCalendar tracking={data?.tracking} cycleByDate={data?.cycleByDate} consultDateSet={data?.consultDateSet} onDayClick={setDaySheet} year={hmYear} month={hmMonth} onPrevMonth={hmPrev} onNextMonth={hmNext}/>
           }
         </div>
       </section>
