@@ -1,9 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, User, Ruler, Target, Bell, Check, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 
+// Standalone field component (defined outside to preserve identity across renders)
+function Field({ label, value, onChange, type='text', placeholder, suffix }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <label className="input-label">{label}</label>
+      <div style={{ position:'relative' }}>
+        <input className="input-field" type={type} inputMode={type==='number'?'decimal':undefined}
+          value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}
+          style={{ paddingRight: suffix?44:undefined }} />
+        {suffix && <span style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', fontSize:13, color:'var(--c-text-300)', fontFamily:'var(--font-ui)' }}>{suffix}</span>}
+      </div>
+    </div>
+  )
+}
+
 export default function Configuracoes({ userId, onBack }) {
+  const navigate = useNavigate()
+  const goBack = () => onBack ? onBack() : navigate('/')
   const [profile, setProfile] = useState({
     display_name:'', height_cm:'', goal_weight_kg:'',
     goal_water_ml:2500, goal_sleep_h:7, goal_protein_g:120, goal_skincare:2,
@@ -81,23 +99,11 @@ export default function Configuracoes({ userId, onBack }) {
     return (w / Math.pow(h/100, 2)).toFixed(1)
   })()
 
-  const Field = ({ label, value, onChange, type='text', placeholder, suffix }) => (
-    <div style={{ marginBottom:14 }}>
-      <label className="input-label">{label}</label>
-      <div style={{ position:'relative' }}>
-        <input className="input-field" type={type} inputMode={type==='number'?'decimal':undefined}
-          value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}
-          style={{ paddingRight: suffix?44:undefined }} />
-        {suffix && <span style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', fontSize:13, color:'var(--c-text-300)', fontFamily:'var(--font-ui)' }}>{suffix}</span>}
-      </div>
-    </div>
-  )
-
   return (
     <div style={{ position:'relative', minHeight:'100%', paddingBottom:40 }}>
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'52px var(--page-pad-x) 24px', position:'relative', overflow:'hidden' }}>
         <PageBotanical/>
-        <button onClick={onBack} className="btn-ghost" style={{ padding:8, position:'relative', zIndex:1 }}><ChevronLeft size={20} strokeWidth={1.8}/></button>
+        <button onClick={goBack} className="btn-ghost" style={{ padding:8, position:'relative', zIndex:1 }}><ChevronLeft size={20} strokeWidth={1.8}/></button>
         <div style={{ position:'relative', zIndex:1 }}>
           <h1 style={{ fontFamily:'var(--font-display)', fontSize:'var(--text-2xl)', fontWeight:500, color:'var(--c-text-900)', letterSpacing:'-0.02em' }}>Configurações</h1>
         </div>
