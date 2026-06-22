@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { scheduleMedReminders } from './lib/medReminders'
 import BottomNav from './components/BottomNav'
 import FloatingButton from './components/FloatingButton'
 import PinScreen from './pages/PinScreen'
@@ -12,7 +13,7 @@ import Treinos from './pages/Treinos'
 import Ciclo from './pages/Ciclo'
 import Fiv from './pages/Fiv'
 import Diario from './pages/Diario'
-import { IA } from './pages/stubs'
+import IA from './pages/IA'
 import Jornada from './pages/Jornada'
 
 function ScrollToTop() {
@@ -41,6 +42,11 @@ function AppShell() {
 
   const uid = supaUser.id
 
+  // Agenda lembretes de medicamentos quando autenticado
+  useEffect(() => {
+    if (uid) scheduleMedReminders(uid)
+  }, [uid])
+
   return (
     <div className="app-shell">
       <ScrollToTop />
@@ -53,7 +59,7 @@ function AppShell() {
           <Route path="/ciclo"    element={<Ciclo    userId={uid} />} />
           <Route path="/fiv"      element={<Fiv      userId={uid} />} />
           <Route path="/diario"   element={<Diario   userId={uid} />} />
-          <Route path="/ia"       element={<IA />} />
+          <Route path="/ia"       element={<IA       userId={uid} />} />
           <Route path="/jornada"  element={<Jornada userId={uid} />} />
         </Routes>
       </main>
