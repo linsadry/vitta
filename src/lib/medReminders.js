@@ -37,9 +37,10 @@ export async function scheduleMedReminders(userId) {
 
   const { data: meds } = await supabase
     .from('health_medications')
-    .select('id,name,dose,time')
+    .select('id,name,dose,time,tipo')
     .eq('user_id', userId)
     .eq('active', true)
+    .neq('tipo', 'eventual')
 
   if (!meds?.length) return
 
