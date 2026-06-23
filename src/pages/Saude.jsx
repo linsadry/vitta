@@ -46,6 +46,8 @@ function useOverviewData(userId) {
       supabase.from('lab_results').select('id,category,date,status,scheduled_date').eq('user_id',userId).order('date',{ascending:false}),
     ])
     const activeMeds = (meds||[]).filter(m=>m.active)
+    const continuosMeds = (meds||[]).filter(m=>m.active&&m.tipo!=='eventual')
+    const eventualMeds = (meds||[]).filter(m=>m.active&&m.tipo==='eventual')
     const activeFiv  = (fivStages||[]).find(s=>s.status==='ativo')
     const doneCount  = (fivStages||[]).filter(s=>s.status==='concluido').length
     const weekT      = tracking||[]
@@ -56,7 +58,7 @@ function useOverviewData(userId) {
     setData({
       nextConsulta: consultas,
       allConsultas: allConsultas||[],
-      meds: meds||[], activeMeds,
+      meds: meds||[], activeMeds, continuosMeds, eventualMeds,
       cycle, activeFiv, doneCount, totalStages:8,
       currentWeight: weights?.[0]?.weight,
       prevWeight: weights?.[1]?.weight,
@@ -160,10 +162,11 @@ function ConsultaModal({item, userId, onClose, onSave}) {
 
 // ─── MED MODAL ────────────────────────────────────────────────────
 function MedModal({userId, onClose, onSave}) {
-  const [f,setF]=useState({name:'',dose:'',frequency:'',time:'',start_date:today(),notes:'',active:true})
+  const [f,setF]=useState({name:'',dose:'',frequency:'',time:'',start_date:today(),notes:'',active:true,tipo:'continuo'})
   const [saving,setSaving]=useState(false)
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
   const save=async()=>{if(!f.name)return;setSaving(true);await supabase.from('health_medications').insert({user_id:userId,...f});onSave?.();onClose()}
+  const isEventual=f.tipo==='eventual'
   return (
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
@@ -172,9 +175,35 @@ function MedModal({userId, onClose, onSave}) {
           <h2 className="sheet-title" style={{marginBottom:0}}>Novo medicamento</h2>
           <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
         </div>
-        {[{k:'name',l:'Nome',p:'Ex: Progesterona'},{k:'dose',l:'Dose',p:'Ex: 200mg'},{k:'frequency',l:'Frequência',p:'Ex: 2x ao dia'},{k:'time',l:'Horário',p:'Ex: Manhã / Noite'},{k:'start_date',l:'Início',type:'date'}].map(({k,l,p,type})=>(
-          <div key={k} style={{marginBottom:12}}><label className="input-label">{l}</label><input className="input-field" type={type||'text'} placeholder={p} value={f[k]} onChange={e=>set(k,e.target.value)}/></div>
-        ))}
+        {/* Tipo selector */}
+        <div style={{marginBottom:16}}>
+          <label className="input-label">Tipo de uso</label>
+          <div style={{display:'flex',gap:8,marginTop:6}}>
+            {[{v:'continuo',l:'Contínuo',d:'Uso regular'},{v:'eventual',l:'Eventual',d:'Quando necessário'}].map(({v,l,d})=>(
+              <button key={v} onClick={()=>set('tipo',v)} style={{
+                flex:1,padding:'12px 10px',borderRadius:'var(--r-md)',border:'none',cursor:'pointer',textAlign:'left',
+                background:f.tipo===v?(v==='eventual'?'rgba(201,169,110,0.18)':'rgba(138,158,140,0.18)'):'var(--c-base-1)',
+                boxShadow:f.tipo===v?`0 0 0 1.5px ${v==='eventual'?'var(--c-gold)':'var(--c-sage)'}`:'none',
+              }}>
+                <div style={{fontFamily:'var(--font-ui)',fontSize:13,fontWeight:f.tipo===v?600:400,color:f.tipo===v?(v==='eventual'?'var(--c-gold-deep,#9a7b3a)':'var(--c-sage-deep)'):'var(--c-text-700)'}}>{l}</div>
+                <div style={{fontSize:10,color:'var(--c-text-300)',fontFamily:'var(--font-ui)',marginTop:2}}>{d}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{marginBottom:12}}><label className="input-label">Nome</label><input className="input-field" placeholder={isEventual?'Ex: Bombinha de asma, Loratadina':'Ex: Progesterona'} value={f.name} onChange={e=>set('name',e.target.value)}/></div>
+        <div style={{marginBottom:12}}><label className="input-label">Dose</label><input className="input-field" placeholder="Ex: 200mg, 2 jatos" value={f.dose} onChange={e=>set('dose',e.target.value)}/></div>
+        {/* Frequência e horário só para contínuos */}
+        {!isEventual&&(
+          <>
+            <div style={{marginBottom:12}}><label className="input-label">Frequência</label><input className="input-field" placeholder="Ex: 2x ao dia" value={f.frequency} onChange={e=>set('frequency',e.target.value)}/></div>
+            <div style={{marginBottom:12}}><label className="input-label">Horário</label><input className="input-field" placeholder="Ex: Manhã / Noite" value={f.time} onChange={e=>set('time',e.target.value)}/></div>
+          </>
+        )}
+        {isEventual&&(
+          <div style={{marginBottom:12}}><label className="input-label">Indicação</label><input className="input-field" placeholder="Ex: Crise alérgica, falta de ar" value={f.frequency} onChange={e=>set('frequency',e.target.value)}/></div>
+        )}
+        <div style={{marginBottom:12}}><label className="input-label">Início</label><input className="input-field" type="date" value={f.start_date} onChange={e=>set('start_date',e.target.value)}/></div>
         <button className="btn-primary" onClick={save} disabled={saving||!f.name} style={{marginTop:8}}>{saving?'Salvando...':'Salvar'}</button>
       </div>
     </div>
@@ -271,17 +300,47 @@ function ConsultasView({userId, consultas, onBack, onReload}) {
 function MedicamentosView({userId, meds, onBack, onReload}) {
   const [modal,setModal]=useState(false)
   const [logs,setLogs]=useState([])
+  const [usoModal,setUsoModal]=useState(null)  // medicamento eventual selecionado p/ registrar uso
+  const [usosRecentes,setUsosRecentes]=useState({})  // medication_id -> count nos últimos 30d
   const todayStr=today()
-  useEffect(()=>{
+
+  const loadLogs=useCallback(async()=>{
     if(!userId) return
-    supabase.from('vitta_med_logs').select('medication_id').eq('user_id',userId).eq('date',todayStr).then(({data})=>setLogs((data||[]).map(l=>l.medication_id)))
+    const {data}=await supabase.from('vitta_med_logs').select('medication_id').eq('user_id',userId).eq('date',todayStr)
+    setLogs((data||[]).map(l=>l.medication_id))
+    // Contagem de usos eventuais nos últimos 30 dias
+    const {data:usos}=await supabase.from('vitta_med_uso_eventual').select('medication_id,used_at').eq('user_id',userId).gte('date',daysAgo(30))
+    const counts={}
+    for(const u of usos||[]){counts[u.medication_id]=(counts[u.medication_id]||0)+1}
+    // Último uso
+    const last={}
+    for(const u of usos||[]){if(!last[u.medication_id]||u.used_at>last[u.medication_id])last[u.medication_id]=u.used_at}
+    setUsosRecentes({counts,last})
   },[userId,todayStr])
+
+  useEffect(()=>{loadLogs()},[loadLogs])
+
   const toggleTaken=async(medId)=>{
     const taken=logs.includes(medId)
     if(taken){await supabase.from('vitta_med_logs').delete().eq('user_id',userId).eq('medication_id',medId).eq('date',todayStr);setLogs(p=>p.filter(id=>id!==medId))}
     else{await supabase.from('vitta_med_logs').upsert({user_id:userId,medication_id:medId,date:todayStr,taken:true},{onConflict:'user_id,medication_id,date'});setLogs(p=>[...p,medId])}
   }
-  const active=meds.filter(m=>m.active), inactive=meds.filter(m=>!m.active)
+
+  const active=meds.filter(m=>m.active&&m.tipo!=='eventual')
+  const eventual=meds.filter(m=>m.active&&m.tipo==='eventual')
+  const inactive=meds.filter(m=>!m.active)
+
+  const fmtUltimoUso=(iso)=>{
+    if(!iso) return null
+    const d=new Date(iso)
+    const hoje=new Date()
+    const diff=Math.floor((hoje-d)/86400000)
+    const hora=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+    if(diff===0) return `Hoje às ${hora}`
+    if(diff===1) return `Ontem às ${hora}`
+    return `${formatDate(d.toISOString().split('T')[0])}`
+  }
+
   return (
     <div>
       <div style={{display:'flex',alignItems:'center',gap:12,padding:'52px var(--page-pad-x) 20px',position:'relative',overflow:'hidden'}}>
@@ -295,9 +354,10 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
         <button className="btn-primary" onClick={()=>setModal(true)}>+ Novo medicamento</button>
       </div>
       <div style={{padding:'0 var(--page-pad-x)'}}>
+        {/* Uso contínuo */}
         {active.length>0&&(
           <section style={{marginBottom:24}}>
-            <div className="section-header"><h2 className="section-title" style={{fontSize:15}}>Em uso</h2></div>
+            <div className="section-header"><h2 className="section-title" style={{fontSize:15}}>Uso contínuo</h2></div>
             <div className="card" style={{padding:'0 16px'}}>
               {active.map((m,i)=>{
                 const taken=logs.includes(m.id)
@@ -319,6 +379,36 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
             </div>
           </section>
         )}
+
+        {/* Uso eventual / SOS */}
+        {eventual.length>0&&(
+          <section style={{marginBottom:24}}>
+            <div className="section-header"><h2 className="section-title" style={{fontSize:15}}>Uso eventual</h2></div>
+            <div className="card" style={{padding:'0 16px'}}>
+              {eventual.map((m,i)=>{
+                const count=usosRecentes.counts?.[m.id]||0
+                const ultimo=fmtUltimoUso(usosRecentes.last?.[m.id])
+                return(
+                  <div key={m.id} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 0',borderBottom:i<eventual.length-1?'1px solid var(--c-border-light)':'none'}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:'rgba(201,169,110,0.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <Pill size={16} strokeWidth={1.8} style={{color:'var(--c-gold)'}}/>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)'}}>{m.name}</div>
+                      <div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{[m.dose,m.frequency].filter(Boolean).join(' · ')}</div>
+                      {ultimo&&<div style={{fontSize:11,color:'var(--c-text-400)',marginTop:3}}>Último uso: {ultimo}{count>1?` · ${count}x em 30d`:''}</div>}
+                    </div>
+                    <button onClick={()=>setUsoModal(m)} style={{padding:'7px 13px',borderRadius:'var(--r-full)',border:'none',cursor:'pointer',background:'var(--c-text-900)',color:'var(--c-base-0)',fontFamily:'var(--font-ui)',fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:5,flexShrink:0}}>
+                      <Plus size={11} strokeWidth={2.5}/>Registrar uso
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Histórico (inativos) */}
         {inactive.length>0&&(
           <section style={{marginBottom:24}}>
             <div className="section-header"><h2 className="section-title" style={{fontSize:15,color:'var(--c-text-300)'}}>Histórico</h2></div>
@@ -335,6 +425,54 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
         {meds.length===0&&<div className="empty-state"><Pill size={32} style={{color:'var(--c-text-100)'}}/><p className="empty-state-text">Nenhum medicamento</p></div>}
       </div>
       {modal&&<MedModal userId={userId} onClose={()=>setModal(false)} onSave={()=>{setModal(false);onReload()}}/>}
+      {usoModal&&<UsoEventualModal med={usoModal} userId={userId} onClose={()=>setUsoModal(null)} onSave={()=>{setUsoModal(null);loadLogs()}}/>}
+    </div>
+  )
+}
+
+// ─── MODAL: registrar uso de medicamento eventual ──────────────────
+function UsoEventualModal({med, userId, onClose, onSave}) {
+  const [date,setDate]=useState(today())
+  const [time,setTime]=useState(()=>{const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`})
+  const [notes,setNotes]=useState('')
+  const [saving,setSaving]=useState(false)
+  const [done,setDone]=useState(false)
+
+  const save=async()=>{
+    setSaving(true)
+    const usedAt=new Date(`${date}T${time||'12:00'}:00`).toISOString()
+    const {error}=await supabase.from('vitta_med_uso_eventual').insert({user_id:userId,medication_id:med.id,used_at:usedAt,date,notes:notes||null})
+    if(error){setSaving(false);return}
+    setDone(true);setTimeout(()=>{onSave?.();onClose()},700)
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+          <h2 className="sheet-title" style={{marginBottom:0}}>Registrar uso</h2>
+          <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
+        </div>
+        <p style={{fontFamily:'var(--font-editorial)',fontSize:14,color:'var(--c-text-500)',fontStyle:'italic',marginBottom:18}}>{med.name}{med.dose?` · ${med.dose}`:''}</p>
+        {done?(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12,padding:'24px 0'}}>
+            <div style={{width:52,height:52,borderRadius:'50%',background:'var(--c-sage-faint)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Check size={24} strokeWidth={2} style={{color:'var(--c-sage)'}}/>
+            </div>
+            <p style={{fontFamily:'var(--font-editorial)',fontSize:18,color:'var(--c-text-700)',fontStyle:'italic'}}>Uso registrado</p>
+          </div>
+        ):(
+          <>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+              <div><label className="input-label">Data</label><input className="input-field" type="date" value={date} max={today()} onChange={e=>setDate(e.target.value)}/></div>
+              <div><label className="input-label">Hora</label><input className="input-field" type="time" value={time} onChange={e=>setTime(e.target.value)}/></div>
+            </div>
+            <div style={{marginBottom:20}}><label className="input-label">Observação</label><textarea className="input-field" rows={2} value={notes} onChange={e=>setNotes(e.target.value)} style={{resize:'none'}} placeholder="Ex: crise alérgica, falta de ar..."/></div>
+            <button className="btn-primary" onClick={save} disabled={saving}>{saving?'Salvando...':'Salvar uso'}</button>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -635,7 +773,7 @@ export default function Saude({userId}) {
         <ModuleCard icon={Stethoscope} title="Consultas" color="var(--c-rose)" onOpen={()=>setView('consultas')}
           stats={[{value:d.allConsultas?.length||0,label:'registradas'},{value:d.allConsultas?.filter(c=>c.date>=today()).length||0,label:'próximas'}]}/>
         <ModuleCard icon={Pill} title="Medicamentos" color="var(--c-lavender)" onOpen={()=>setView('medicamentos')}
-          stats={[{value:d.activeMeds?.length||0,label:'em uso'},{value:d.meds?.filter(m=>!m.active).length||0,label:'histórico'}]}/>
+          stats={[{value:d.continuosMeds?.length||0,label:'contínuos'},{value:d.eventualMeds?.length||0,label:'eventuais'}]}/>
         <ModuleCard icon={FlaskConical} title="Exames" color="var(--c-sage)" onOpen={()=>setView('exames')}
           stats={[{value:d.labResults?.filter(e=>e.status==='agendado').length||0,label:'agendados'},{value:d.labResults?.filter(e=>e.status==='realizado'||!e.status).length||0,label:'realizados'}]}/>
         <ModuleCard icon={Activity} title="Histórico" color="var(--c-gold)" onOpen={()=>setView('historico')}
