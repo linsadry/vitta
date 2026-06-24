@@ -101,7 +101,6 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
           <<div style={{ marginBottom: 16 }}>
               <label className="input-label">Data</label>
               <input className="input-field" type="date"
-                value={date} max={today()}
                 onChange={e => setDate(e.target.value)} />
             </div>
 
