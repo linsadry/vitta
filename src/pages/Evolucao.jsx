@@ -1,3 +1,4 @@
+import ProgressPhotos from '../components/ProgressPhotos'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Scale, Ruler, Moon, Droplets, TrendingUp, TrendingDown, Minus, Plus, X, Check, FlaskConical, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
