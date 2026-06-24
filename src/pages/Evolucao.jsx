@@ -469,6 +469,27 @@ export default function Evolucao({ userId }) {
               + Medidas
             </button>
           </div>
+          
+          {/* Action buttons */}
+          <div style={{ padding: '0 var(--page-pad-x)', display: 'flex', gap: 10, marginBottom: 32 }}>
+            <button className="btn-primary" style={{ flex: 1 }} onClick={() => setModal('peso')}>
+              + Registrar peso
+            </button>
+            <button className="btn-primary" style={{ flex: 1, background: 'var(--c-base-2)', color: 'var(--c-text-700)' }}
+              onClick={() => setModal('medidas')}>
+              + Medidas
+            </button>
+          </div>
+
+          {/* ── Fotos de progresso ── */}
+          <div style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
+            <ProgressPhotos userId={userId} />
+          </div>
+
+          {/* Evolução de indicadores */}
+          {data?.labResults?.length > 0 && (
+            <IndicadoresSection labResults={data.labResults} />
+          )}
 
           {/* Evolução de indicadores */}
           {data?.labResults?.length > 0 && (
