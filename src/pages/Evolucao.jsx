@@ -192,10 +192,10 @@ function HabitStrip({ label, icon: Icon, color, data, field, getValue, goal, uni
 
 /* ─── REGISTER MODAL ─────────────────────────────────────────────── */
 function RegModal({ type, userId, onClose, onSave }) {
-  const [vals, setVals] = useState({})
+  const [vals, setVals]     = useState({})
+  const [date, setDate]     = useState(today())
   const [saving, setSaving] = useState(false)
   const [done, setDone]     = useState(false)
-  const todayStr = today()
 
   const set = (k, v) => setVals(p => ({ ...p, [k]: v }))
 
@@ -206,9 +206,9 @@ function RegModal({ type, userId, onClose, onSave }) {
     if (type === 'peso') {
       const w = toNum(vals.weight)
       if (!w) { setSaving(false); return }
-      await supabase.from('physical_metrics').insert({ user_id: userId, date: todayStr, weight: w })
+      await supabase.from('physical_metrics').insert({ user_id: userId, date: date, weight: w })
     } else if (type === 'medidas') {
-      const row = { user_id: userId, date: todayStr }
+      const row = { user_id: userId, date: date }
       const fields = { waist_cm: vals.waist, abdomen_cm: vals.abdomen, hip_cm: vals.hip, arm_right_cm: vals.arm, thigh_right_cm: vals.thigh }
       Object.entries(fields).forEach(([k, v]) => { const n = toNum(v); if (n) row[k] = n })
       await supabase.from('physical_metrics').insert(row)
@@ -246,7 +246,13 @@ function RegModal({ type, userId, onClose, onSave }) {
             <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 18, color: 'var(--c-text-700)', fontStyle: 'italic' }}>Registrado</p>
           </div>
         ) : (
-          <>
+          <{/* Data — sempre primeiro */}
+            <div style={{ marginBottom: 16 }}>
+              <label className="input-label">Data</label>
+              <input className="input-field" type="date"
+                value={date} max={today()}
+                onChange={e => setDate(e.target.value)} />
+            </div>
             {fields.map(f => (
               <div key={f.key} style={{ marginBottom: 16 }}>
                 <label className="input-label">{f.label}</label>
