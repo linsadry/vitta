@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Plus, X, Check, Dumbbell } from 'lucide-react'
+// src/pages/Treinos.jsx
+import React, { useState, useEffect } from 'react'
+import { Plus, X, Check, Dumbbell, Zap } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 import { today, formatDateShort } from '../lib/utils'
@@ -37,7 +38,6 @@ function ExerciseRow({ exercise, todayLogs, onLog }) {
           Série
         </button>
       </div>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {Array.from({ length: target }, (_, i) => (
           <div key={i} style={{
@@ -57,11 +57,11 @@ function ExerciseRow({ exercise, todayLogs, onLog }) {
 
 /* ─── LOG SET MODAL ──────────────────────────────────────────────── */
 function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
-  const [load, setLoad]   = useState(exercise.target_load ? String(exercise.target_load) : '')
-  const [reps, setReps]   = useState(exercise.target_reps ? String(exercise.target_reps) : '')
-  const [notes, setNotes] = useState('')
+  const [load, setLoad]     = useState(exercise.target_load ? String(exercise.target_load) : '')
+  const [reps, setReps]     = useState(exercise.target_reps ? String(exercise.target_reps) : '')
+  const [notes, setNotes]   = useState('')
   const [saving, setSaving] = useState(false)
-  const [done, setDone]   = useState(false)
+  const [done, setDone]     = useState(false)
 
   const save = async () => {
     setSaving(true)
@@ -129,11 +129,101 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
   )
 }
 
+/* ─── QUICK SESSION MODAL ────────────────────────────────────────── */
+const ACTIVITY_TYPES = ['Força', 'Aeróbico', 'Yoga', 'Pilates', 'Caminhada', 'Outro']
+
+function QuickSessionModal({ userId, currentPlan, onClose, onSave }) {
+  const [type, setType]         = useState('Aeróbico')
+  const [duration, setDuration] = useState('')
+  const [notes, setNotes]       = useState('')
+  const [saving, setSaving]     = useState(false)
+  const [done, setDone]         = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    const label = duration ? `${type} · ${duration} min` : type
+    const { error } = await supabase.from('fitness_workout_logs').insert({
+      user_id: userId,
+      date: today(),
+      plan_id:   type === 'Força' ? (currentPlan?.id   ?? null) : null,
+      plan_name: type === 'Força' ? (currentPlan?.name ?? null) : null,
+      exercise_id:   null,
+      exercise_name: label,
+      set_number: 1,
+      reps: null,
+      load: null,
+      notes: notes || null,
+    })
+    if (error) { console.error(error); setSaving(false); return }
+    setDone(true)
+    setTimeout(() => { onSave?.(); onClose() }, 800)
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <h2 className="sheet-title" style={{ marginBottom: 0, fontSize: 20 }}>Registrar sessão</h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding: 8 }}><X size={18} strokeWidth={1.8} /></button>
+        </div>
+        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)', marginBottom: 24 }}>
+          Sem detalhar exercícios — só marcar ✓
+        </p>
+
+        {done ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '20px 0' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--c-sage-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Check size={24} strokeWidth={2} style={{ color: 'var(--c-sage)' }} />
+            </div>
+            <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 18, color: 'var(--c-text-700)', fontStyle: 'italic' }}>Treino registrado!</p>
+          </div>
+        ) : (
+          <>
+            <label className="input-label" style={{ display: 'block', marginBottom: 10 }}>Tipo de atividade</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+              {ACTIVITY_TYPES.map(t => (
+                <button key={t} onClick={() => setType(t)} style={{
+                  padding: '8px 14px', borderRadius: 'var(--r-full)',
+                  border: `1.5px solid ${type === t ? 'var(--c-sage)' : 'var(--c-border)'}`,
+                  background: type === t ? 'var(--c-sage-faint)' : 'none',
+                  color: type === t ? 'var(--c-sage)' : 'var(--c-text-500)',
+                  fontFamily: 'var(--font-ui)', fontSize: 13, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label className="input-label">Duração (min)</label>
+              <input className="input-field" type="text" inputMode="numeric"
+                placeholder="45" value={duration}
+                onChange={e => setDuration(e.target.value)}
+                style={{ textAlign: 'center', fontSize: 22, fontFamily: 'var(--font-display)' }} />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label className="input-label">Observação</label>
+              <input className="input-field" type="text" placeholder="Ex: corrida no parque, aula nova..."
+                value={notes} onChange={e => setNotes(e.target.value)} />
+            </div>
+
+            <button className="btn-primary" onClick={save} disabled={saving}>
+              {saving ? 'Salvando...' : '✓ Registrar sessão'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ─── ADD PROGRAM MODAL ──────────────────────────────────────────── */
 function AddProgramModal({ userId, onClose, onSave }) {
-  const [name, setName]   = useState('')
-  const [saving, setSaving] = useState(false)
-
+  const [name, setName]           = useState('')
+  const [saving, setSaving]       = useState(false)
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
   const [endDate, setEndDate]     = useState('')
 
@@ -171,37 +261,34 @@ function AddProgramModal({ userId, onClose, onSave }) {
 
 /* ─── MAIN PAGE ──────────────────────────────────────────────────── */
 export default function Treinos({ userId }) {
-  const [programs, setPrograms]     = useState([])
-  const [activeProg, setActiveProg] = useState(null)
+  const [programs, setPrograms]         = useState([])
+  const [activeProg, setActiveProg]     = useState(null)
   const [activeVariant, setActiveVariant] = useState('A')
-  const [plans, setPlans]           = useState([])
-  const [exercises, setExercises]   = useState([])
-  const [todayLogs, setTodayLogs]   = useState([])
-  const [recentLogs, setRecentLogs] = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [logTarget, setLogTarget]   = useState(null)
-  const [modal, setModal]           = useState(null)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [plans, setPlans]               = useState([])
+  const [exercises, setExercises]       = useState([])
+  const [todayLogs, setTodayLogs]       = useState([])
+  const [recentLogs, setRecentLogs]     = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [logTarget, setLogTarget]       = useState(null)
+  const [modal, setModal]               = useState(null)
+  const [quickModal, setQuickModal]     = useState(false)
+  const [refreshKey, setRefreshKey]     = useState(0)
 
   const refresh = () => setRefreshKey(k => k + 1)
 
-  // ── Effect 1: load programs once (no activeProg dep → no loop) ──
   useEffect(() => {
     if (!userId) return
     supabase.from('vitta_programs')
-      .select('id,name,order_idx,active,start_date,end_date').eq('user_id', userId).eq('active', true).order('order_idx')
+      .select('id,name,order_idx,active,start_date,end_date')
+      .eq('user_id', userId).eq('active', true).order('order_idx')
       .then(({ data }) => {
         const list = data || []
         setPrograms(list)
-        if (list.length) {
-          setActiveProg(prev => prev ?? list[0].id)
-        } else {
-          setLoading(false) // No programs found → stop loading
-        }
+        if (list.length) setActiveProg(prev => prev ?? list[0].id)
+        else setLoading(false)
       })
   }, [userId, refreshKey])
 
-  // ── Effect 2: load plan data when program/variant changes ──────
   useEffect(() => {
     if (!userId || !activeProg) return
     let cancelled = false
@@ -215,8 +302,8 @@ export default function Treinos({ userId }) {
           supabase.from('fitness_workout_logs')
             .select('*').eq('user_id', userId).eq('date', today()),
           supabase.from('fitness_workout_logs')
-            .select('date,plan_name,exercise_name,load,reps')
-            .eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
+            .select('date,plan_name,exercise_name,load,reps,exercise_id')
+            .eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
         ])
         if (cancelled) return
 
@@ -225,7 +312,6 @@ export default function Treinos({ userId }) {
         setTodayLogs(logs || [])
         setRecentLogs(recent || [])
 
-        // Find the plan for the current variant, fallback to first
         const plan = pList.find(p => p.variant === activeVariant) ?? pList[0]
         if (plan) {
           const { data: exList } = await supabase.from('fitness_workout_exercises')
@@ -247,6 +333,9 @@ export default function Treinos({ userId }) {
 
   const currentPlan = plans.find(p => p.variant === activeVariant) ?? plans[0]
   const variants    = ['A', 'B', 'C'].filter(v => plans.some(p => p.variant === v))
+
+  // Sessão rápida = log sem exercise_id
+  const todayQuick = todayLogs.find(l => !l.exercise_id && l.exercise_name)
 
   const byDate = recentLogs.reduce((acc, l) => {
     if (!acc[l.date]) acc[l.date] = []
@@ -303,7 +392,7 @@ export default function Treinos({ userId }) {
 
       {/* Variant tabs A / B / C */}
       {variants.length > 0 && (
-        <div style={{ display: 'flex', margin: '0 var(--page-pad-x) 20px', borderBottom: '1px solid var(--c-border)' }}>
+        <div style={{ display: 'flex', margin: '0 var(--page-pad-x) 16px', borderBottom: '1px solid var(--c-border)' }}>
           {variants.map(v => {
             const active = activeVariant === v
             const planName = plans.find(p => p.variant === v)?.name
@@ -326,6 +415,40 @@ export default function Treinos({ userId }) {
           })}
         </div>
       )}
+
+      {/* ── QUICK SESSION BANNER ── */}
+      <div style={{ padding: '0 var(--page-pad-x)', marginBottom: 14 }}>
+        {todayQuick ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 14px', borderRadius: 'var(--r-md)',
+            background: 'var(--c-sage-faint)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Check size={14} strokeWidth={2.5} style={{ color: 'var(--c-sage)', flexShrink: 0 }} />
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-sage)', fontWeight: 500 }}>
+                {todayQuick.exercise_name}
+              </span>
+            </div>
+            <button onClick={() => setQuickModal(true)} style={{
+              fontSize: 11, fontFamily: 'var(--font-ui)', color: 'var(--c-sage)',
+              background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7,
+            }}>
+              + outra
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setQuickModal(true)} style={{
+            width: '100%', padding: '11px 14px', borderRadius: 'var(--r-md)',
+            border: '1.5px dashed var(--c-border)', background: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            color: 'var(--c-text-400)', fontFamily: 'var(--font-ui)', fontSize: 13,
+          }}>
+            <Zap size={14} strokeWidth={2} />
+            Registrar sessão rápida
+          </button>
+        )}
+      </div>
 
       {/* Exercises */}
       <div style={{ padding: '0 var(--page-pad-x)', marginBottom: 32 }}>
@@ -377,15 +500,20 @@ export default function Treinos({ userId }) {
         </section>
       )}
 
-      {/* Log set modal */}
       {logTarget && (
         <LogModal exercise={logTarget} planId={currentPlan?.id} planName={currentPlan?.name}
           userId={userId} onClose={() => setLogTarget(null)} onSave={refresh} />
       )}
-
-      {/* Add program modal */}
       {modal === 'prog' && (
         <AddProgramModal userId={userId} onClose={() => setModal(null)} onSave={refresh} />
+      )}
+      {quickModal && (
+        <QuickSessionModal
+          userId={userId}
+          currentPlan={currentPlan}
+          onClose={() => setQuickModal(false)}
+          onSave={refresh}
+        />
       )}
     </div>
   )
