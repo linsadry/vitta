@@ -57,6 +57,7 @@ function ExerciseRow({ exercise, todayLogs, onLog }) {
 
 /* ─── LOG SET MODAL ──────────────────────────────────────────────── */
 function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
+  const [date, setDate]     = useState(today())
   const [load, setLoad]     = useState(exercise.target_load ? String(exercise.target_load) : '')
   const [reps, setReps]     = useState(exercise.target_reps ? String(exercise.target_reps) : '')
   const [notes, setNotes]   = useState('')
@@ -66,7 +67,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
   const save = async () => {
     setSaving(true)
     await supabase.from('fitness_workout_logs').insert({
-      user_id: userId, date: today(),
+    user_id: userId, date: today()  →  date: date,
       plan_id: planId, plan_name: planName,
       exercise_id: exercise.id, exercise_name: exercise.name,
       set_number: 1,
@@ -97,7 +98,16 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
             <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 18, color: 'var(--c-text-700)', fontStyle: 'italic' }}>Série registrada</p>
           </div>
         ) : (
-          <>
+          <<div style={{ marginBottom: 16 }}>
+              <label className="input-label">Data</label>
+              <input className="input-field" type="date"
+                value={date} max={today()}
+                onChange={e => setDate(e.target.value)} />
+            </div>
+
+            <label className="input-label" style={{ display: 'block', marginBottom: 10 }}>Tipo de atividade</label>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               <div>
                 <label className="input-label">Carga (kg)</label>
@@ -133,6 +143,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
 const ACTIVITY_TYPES = ['Força', 'Aeróbico', 'Yoga', 'Pilates', 'Caminhada', 'Outro']
 
 function QuickSessionModal({ userId, currentPlan, onClose, onSave }) {
+   const [date, setDate]         = useState(today())
   const [type, setType]         = useState('Aeróbico')
   const [duration, setDuration] = useState('')
   const [notes, setNotes]       = useState('')
