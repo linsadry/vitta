@@ -98,7 +98,8 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
             <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 18, color: 'var(--c-text-700)', fontStyle: 'italic' }}>Série registrada</p>
           </div>
         ) : (
-          <<div style={{ marginBottom: 16 }}>
+  <>
+    <div style={{ marginBottom: 16 }}>
               <label className="input-label">Data</label>
               <input className="input-field" type="date"
                 onChange={e => setDate(e.target.value)} />
