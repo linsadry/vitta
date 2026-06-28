@@ -245,10 +245,11 @@ function RegModal({ type, userId, onClose, onSave }) {
             </div>
             <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 18, color: 'var(--c-text-700)', fontStyle: 'italic' }}>Registrado</p>
           </div>
-        ) : (
-          <{/* Data — sempre primeiro */}
-            <div style={{ marginBottom: 16 }}>
-              <label className="input-label">Data</label>
+       ) : (
+  <>
+    {/* Data — sempre primeiro */}
+    <div style={{ marginBottom: 16 }}>
+      <label className="input-label">Data</label>
               <input className="input-field" type="date"
                 value={date} max={today()}
                 onChange={e => setDate(e.target.value)} />
