@@ -67,7 +67,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
   const save = async () => {
     setSaving(true)
     await supabase.from('fitness_workout_logs').insert({
-    user_id: userId, date: today()  →  date: date,
+    user_id: userId, date: date,
       plan_id: planId, plan_name: planName,
       exercise_id: exercise.id, exercise_name: exercise.name,
       set_number: 1,
