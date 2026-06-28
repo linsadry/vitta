@@ -397,75 +397,265 @@ function PendenciasHoje({ data, onAction }) {
 }
 
 /* ─── DAY DETAIL SHEET ───────────────────────────────────────────── */
-function DayDetailSheet({ date, userId, onClose }) {
-  const [dayData,setDayData]=useState(null)
-  useEffect(()=>{
-    if(!date||!userId) return
-    const load=async()=>{
-      const [{data:dt},{data:diary},{data:wkLogs},{data:meals},{data:weight}]=await Promise.all([
+function DayDetailSheet({ date, userId, onClose, onReload }) {
+  const [dayData, setDayData]     = useState(null)
+  const [adding, setAdding]       = useState(null)
+  const [addVal, setAddVal]       = useState('')
+  const [moodSel, setMoodSel]     = useState(null)
+  const [trainType, setTrainType] = useState('Aeróbico')
+  const [trainDur, setTrainDur]   = useState('')
+  const [saving, setSaving]       = useState(false)
+  const [rk, setRk]               = useState(0)
+
+  const MOOD_L    = { 1:'Muito bem', 2:'Bem', 3:'Neutra', 4:'Cansada', 5:'Difícil' }
+  const TRAIN_T   = ['Força','Aeróbico','Yoga','Pilates','Caminhada','Outro']
+  const NUM_CFG   = {
+    peso: { label:'Peso (kg)', ph:'65,0', field:'weight',      table:'physical_metrics', acc:false },
+    agua: { label:'Água (ml)', ph:'500',  field:'water_ml',    table:'daily_tracking',   acc:true  },
+    sono: { label:'Sono (h)',  ph:'7,5',  field:'sleep_hours', table:'daily_tracking',   acc:false },
+  }
+
+  useEffect(() => {
+    if (!date || !userId) return
+    setDayData(null)
+    const load = async () => {
+      const [{ data:dt },{ data:diary },{ data:wkLogs },{ data:meals },{ data:weight }] = await Promise.all([
         supabase.from('daily_tracking').select('*').eq('user_id',userId).eq('date',date).maybeSingle(),
-        supabase.from('diary_entries').select('mood,content').eq('user_id',userId).eq('date',date).maybeSingle(),
+        supabase.from('diary_entries').select('mood,content,id').eq('user_id',userId).eq('date',date).maybeSingle(),
         supabase.from('fitness_workout_logs').select('exercise_name,load,reps').eq('user_id',userId).eq('date',date).limit(10),
         supabase.from('fitness_meals').select('name,kcal,protein_g').eq('user_id',userId).eq('date',date).limit(6),
         supabase.from('physical_metrics').select('weight').eq('user_id',userId).eq('date',date).maybeSingle(),
       ])
-      setDayData({dt:dt,diary:diary,wkLogs:wkLogs||[],meals:meals||[],weight:weight})
+      setDayData({ dt, diary, wkLogs:wkLogs||[], meals:meals||[], weight })
     }
     load()
-  },[date,userId])
+  }, [date, userId, rk])
 
-  const dt=dayData?.dt
-  const hasAny=dayData&&(dt||dayData.diary||dayData.wkLogs?.length||dayData.meals?.length||dayData.weight)
+  const startAdding = (type) => {
+    setAdding(type); setAddVal(''); setMoodSel(null); setTrainType('Aeróbico'); setTrainDur('')
+  }
 
-  const MOOD_L={1:'Muito bem',2:'Bem',3:'Neutra',4:'Cansada',5:'Difícil'}
+  const afterSave = () => {
+    setAdding(null); setSaving(false); setRk(k=>k+1); onReload?.()
+  }
+
+  const saveNumeric = async () => {
+    const cfg = NUM_CFG[adding]
+    if (!cfg || saving) return
+    const n = parseFloat(addVal.replace(',','.'))
+    if (isNaN(n)) return
+    setSaving(true)
+    if (cfg.table === 'physical_metrics') {
+      await supabase.from('physical_metrics').insert({ user_id:userId, date, [cfg.field]:n })
+    } else {
+      const { data:ex } = await supabase.from('daily_tracking').select('id,'+cfg.field).eq('user_id',userId).eq('date',date).maybeSingle()
+      if (ex) await supabase.from('daily_tracking').update({ [cfg.field]: cfg.acc ? (ex[cfg.field]||0)+n : n }).eq('id',ex.id)
+      else     await supabase.from('daily_tracking').insert({ user_id:userId, date, [cfg.field]:n })
+    }
+    afterSave()
+  }
+
+  const saveMoodDate = async () => {
+    if (!moodSel || saving) return
+    setSaving(true)
+    const mv = String(moodSel)
+    const { data:de } = await supabase.from('diary_entries').select('id').eq('user_id',userId).eq('date',date).maybeSingle()
+    if (de) await supabase.from('diary_entries').update({ mood:mv }).eq('id',de.id)
+    else     await supabase.from('diary_entries').insert({ user_id:userId, date, mood:mv })
+    const { data:dt } = await supabase.from('daily_tracking').select('id').eq('user_id',userId).eq('date',date).maybeSingle()
+    if (dt) await supabase.from('daily_tracking').update({ mood:mv }).eq('id',dt.id)
+    else     await supabase.from('daily_tracking').insert({ user_id:userId, date, mood:mv })
+    afterSave()
+  }
+
+  const saveTreino = async () => {
+    if (saving) return
+    setSaving(true)
+    const label = trainDur ? `${trainType} · ${trainDur} min` : trainType
+    await supabase.from('fitness_workout_logs').insert({
+      user_id:userId, date, exercise_id:null, exercise_name:label, set_number:1, reps:null, load:null,
+    })
+    afterSave()
+  }
+
+  const dt = dayData?.dt
+  const hasAny = dayData && (dt || dayData.diary || dayData.wkLogs?.length || dayData.meals?.length || dayData.weight)
+
+  const btnCancel = {
+    flex:1, padding:'11px 0', borderRadius:'var(--r-md)',
+    border:'1.5px solid var(--c-border)', background:'none',
+    fontFamily:'var(--font-ui)', fontSize:13, color:'var(--c-text-500)', cursor:'pointer',
+  }
 
   return (
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
         <div className="sheet-handle"/>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-          <h2 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:500,color:'var(--c-text-900)',margin:0}}>{formatDate(date)}</h2>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:500,color:'var(--c-text-900)',margin:0}}>
+            {formatDate(date)}
+          </h2>
           <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
         </div>
-        {!dayData&&<div style={{height:80}} className="loading-shimmer card"/>}
-        {dayData&&!hasAny&&(
-          <p style={{fontFamily:'var(--font-editorial)',fontSize:15,color:'var(--c-text-300)',fontStyle:'italic',textAlign:'center',padding:'20px 0'}}>Nenhum registro para este dia</p>
-        )}
-        {dayData&&(
+
+        {!dayData && <div style={{height:80}} className="loading-shimmer card"/>}
+
+        {dayData && (
           <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {dayData.weight?.weight&&<div className="card-inset" style={{padding:'12px 14px'}}><span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Peso</span><div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:500,marginTop:3}}>{parseFloat(dayData.weight.weight).toFixed(1)} kg</div></div>}
-            {dt&&(dt.water_ml||dt.sleep_hours||dt.mood)&&(
+
+            {/* ── Data atual do dia ── */}
+            {dayData.weight?.weight && (
               <div className="card-inset" style={{padding:'12px 14px'}}>
-                <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Hábitos</span>
-                <div style={{display:'flex',gap:16,marginTop:6,flexWrap:'wrap'}}>
-                  {dt.water_ml>0&&<span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Água {fmtWater(dt.water_ml)}</span>}
-                  {dt.sleep_hours>0&&<span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Sono {fmtSleep(dt.sleep_hours)}</span>}
-                  {dt.mood&&<span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Humor: {MOOD_L[parseInt(dt.mood)]||dt.mood}</span>}
+                <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Peso</span>
+                <div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:500,marginTop:3}}>
+                  {parseFloat(dayData.weight.weight).toFixed(1)} kg
                 </div>
               </div>
             )}
-            {dayData.wkLogs?.length>0&&(
+
+            {dt && (dt.water_ml || dt.sleep_hours || dt.mood) && (
+              <div className="card-inset" style={{padding:'12px 14px'}}>
+                <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Hábitos</span>
+                <div style={{display:'flex',gap:16,marginTop:6,flexWrap:'wrap'}}>
+                  {dt.water_ml>0 && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Água {fmtWater(dt.water_ml)}</span>}
+                  {dt.sleep_hours>0 && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Sono {fmtSleep(dt.sleep_hours)}</span>}
+                  {dt.mood && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Humor: {MOOD_L[parseInt(dt.mood)]||dt.mood}</span>}
+                </div>
+              </div>
+            )}
+
+            {dayData.wkLogs?.length > 0 && (
               <div className="card-inset" style={{padding:'12px 14px'}}>
                 <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Treino</span>
-                {dayData.wkLogs.map((l,i)=>(
-                  <div key={i} style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)',marginTop:4}}>{l.exercise_name}{l.load?` · ${l.load}kg`:''}{l.reps?` × ${l.reps}`:''}</div>
+                {dayData.wkLogs.map((l,i) => (
+                  <div key={i} style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)',marginTop:4}}>
+                    {l.exercise_name}{l.load?` · ${l.load}kg`:''}{l.reps?` × ${l.reps}`:''}
+                  </div>
                 ))}
               </div>
             )}
-            {dayData.meals?.length>0&&(
+
+            {dayData.meals?.length > 0 && (
               <div className="card-inset" style={{padding:'12px 14px'}}>
                 <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Refeições</span>
-                {dayData.meals.map((m,i)=>(
-                  <div key={i} style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)',marginTop:4}}>{m.name}{m.kcal?` · ${Math.round(m.kcal)} kcal`:''}</div>
+                {dayData.meals.map((m,i) => (
+                  <div key={i} style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)',marginTop:4}}>
+                    {m.name}{m.kcal?` · ${Math.round(m.kcal)} kcal`:''}
+                  </div>
                 ))}
               </div>
             )}
-            {dayData.diary?.content&&(
+
+            {dayData.diary?.content && (
               <div className="card-inset" style={{padding:'12px 14px'}}>
                 <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Diário</span>
-                <p style={{fontFamily:'var(--font-editorial)',fontSize:14,color:'var(--c-text-700)',fontStyle:'italic',marginTop:4,lineHeight:1.5}}>{dayData.diary.content}</p>
+                <p style={{fontFamily:'var(--font-editorial)',fontSize:14,color:'var(--c-text-700)',fontStyle:'italic',marginTop:4,lineHeight:1.5}}>
+                  {dayData.diary.content}
+                </p>
               </div>
             )}
+
+            {!hasAny && !adding && (
+              <p style={{fontFamily:'var(--font-editorial)',fontSize:15,color:'var(--c-text-300)',fontStyle:'italic',textAlign:'center',padding:'16px 0'}}>
+                Nenhum registro para este dia
+              </p>
+            )}
+
+            {/* ── Formulário de adição ── */}
+            {adding && (
+              <div style={{borderTop:'1px solid var(--c-border-light)',paddingTop:16}}>
+
+                {/* Peso / Água / Sono */}
+                {NUM_CFG[adding] && (
+                  <>
+                    <p style={{fontSize:11,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>
+                      {NUM_CFG[adding].label}
+                    </p>
+                    <input className="input-field" type="text" inputMode="decimal"
+                      placeholder={NUM_CFG[adding].ph} value={addVal}
+                      onChange={e=>setAddVal(e.target.value)}
+                      style={{textAlign:'center',fontSize:28,fontFamily:'var(--font-display)',marginBottom:14}} autoFocus/>
+                    <div style={{display:'flex',gap:10}}>
+                      <button onClick={()=>setAdding(null)} style={btnCancel}>Cancelar</button>
+                      <button onClick={saveNumeric} disabled={!addVal||saving} className="btn-primary" style={{flex:2}}>
+                        {saving?'Salvando...':'Salvar'}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Humor */}
+                {adding === 'humor' && (
+                  <>
+                    <p style={{fontSize:11,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:14}}>Humor</p>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:4,marginBottom:20}}>
+                      {[1,2,3,4,5].map(n=>(
+                        <FaceIcon key={n} level={n} selected={moodSel===n} onClick={()=>setMoodSel(n)} size={28}/>
+                      ))}
+                    </div>
+                    <div style={{display:'flex',gap:10}}>
+                      <button onClick={()=>setAdding(null)} style={btnCancel}>Cancelar</button>
+                      <button onClick={saveMoodDate} disabled={!moodSel||saving} className="btn-primary" style={{flex:2}}>
+                        {saving?'Salvando...':'Salvar humor'}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Treino */}
+                {adding === 'treino' && (
+                  <>
+                    <p style={{fontSize:11,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>Sessão de treino</p>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
+                      {TRAIN_T.map(t=>(
+                        <button key={t} onClick={()=>setTrainType(t)} style={{
+                          padding:'7px 12px',borderRadius:'var(--r-full)',
+                          border:`1.5px solid ${trainType===t?'var(--c-sage)':'var(--c-border)'}`,
+                          background:trainType===t?'var(--c-sage-faint)':'none',
+                          color:trainType===t?'var(--c-sage)':'var(--c-text-500)',
+                          fontFamily:'var(--font-ui)',fontSize:12,cursor:'pointer',
+                        }}>{t}</button>
+                      ))}
+                    </div>
+                    <label className="input-label">Duração (min)</label>
+                    <input className="input-field" type="text" inputMode="numeric"
+                      placeholder="45" value={trainDur} onChange={e=>setTrainDur(e.target.value)}
+                      style={{textAlign:'center',fontSize:20,fontFamily:'var(--font-display)',marginBottom:14}}/>
+                    <div style={{display:'flex',gap:10}}>
+                      <button onClick={()=>setAdding(null)} style={btnCancel}>Cancelar</button>
+                      <button onClick={saveTreino} disabled={saving} className="btn-primary" style={{flex:2}}>
+                        {saving?'Salvando...':'✓ Registrar'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Botões de adição ── */}
+            {!adding && (
+              <div style={{paddingTop:12,borderTop:'1px solid var(--c-border-light)'}}>
+                <p style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>
+                  Adicionar para este dia
+                </p>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  {[
+                    {id:'peso',label:'+ Peso'},
+                    {id:'agua',label:'+ Água'},
+                    {id:'sono',label:'+ Sono'},
+                    {id:'humor',label:'+ Humor'},
+                    {id:'treino',label:'+ Treino'},
+                  ].map(({id,label})=>(
+                    <button key={id} onClick={()=>startAdding(id)} style={{
+                      padding:'7px 12px',borderRadius:'var(--r-full)',
+                      border:'1.5px solid var(--c-border)',background:'none',
+                      fontFamily:'var(--font-ui)',fontSize:12,color:'var(--c-text-500)',cursor:'pointer',
+                    }}>{label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
       </div>
@@ -763,7 +953,7 @@ export default function Home({ userId }) {
       {modal==='skincare'
         ? <SkincareModal userId={userId} skincareAm={!!data?.skincare_am} skincarePm={!!data?.skincare_pm} onClose={()=>setModal(null)} onSave={reload}/>
         : modal && <RegisterModal type={modal} userId={userId} data={data} onClose={()=>setModal(null)} onSave={reload}/>}
-      {daySheet&&<DayDetailSheet date={daySheet} userId={userId} onClose={()=>setDaySheet(null)}/>}
+      {daySheet && <DayDetailSheet date={daySheet} userId={userId} onClose={()=>setDaySheet(null)} onReload={reload}/>}
     </div>
   )
 }
