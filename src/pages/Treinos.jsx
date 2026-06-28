@@ -447,7 +447,7 @@ function HistoryModal({ exercise, userId, onClose }) {
 }
 
 /* ─── ADD/EDIT EXERCISE MODAL ────────────────────────────────────── */
-function AddExerciseModal({ planId, exercise, onClose, onSave }) {
+function AddExerciseModal({ planId, userId, exercise, onClose, onSave }) {
   const [name, setName]   = useState(exercise?.name ?? '')
   const [sets, setSets]   = useState(exercise?.target_sets ? String(exercise.target_sets) : '3')
   const [reps, setReps]   = useState(exercise?.target_reps ? String(exercise.target_reps) : '12')
@@ -469,12 +469,14 @@ function AddExerciseModal({ planId, exercise, onClose, onSave }) {
       const { data: last } = await supabase.from('fitness_workout_exercises')
         .select('order_idx').eq('plan_id', planId).order('order_idx', { ascending: false }).limit(1).maybeSingle()
       await supabase.from('fitness_workout_exercises').insert({
-        plan_id: planId, name: name.trim(),
-        target_sets: parseInt(sets) || 3,
-        target_reps: parseInt(reps) || 12,
-        target_load: load ? parseFloat(load) : null,
-        order_idx: (last?.order_idx ?? -1) + 1,
-      })
+  plan_id: planId,
+  user_id: userId,
+  name: name.trim(),
+  target_sets: parseInt(sets) || 3,
+  target_reps: parseInt(reps) || 12,
+  target_load: load ? parseFloat(load) : null,
+  order_idx: (last?.order_idx ?? -1) + 1,
+})
     }
     onSave?.(); onClose()
   }
@@ -803,13 +805,14 @@ function WorkoutView({ plan, userId, prog, onBack, onRefresh }) {
         <HistoryModal exercise={histTarget} userId={userId} onClose={() => setHistTarget(null)} />
       )}
       {(addModal || editTarget) && (
-        <AddExerciseModal
-          planId={plan.id}
-          exercise={editTarget ?? null}
-          onClose={() => { setAddModal(false); setEditTarget(null) }}
-          onSave={load}
-        />
-      )}
+  <AddExerciseModal
+    planId={plan.id}
+    userId={userId}
+    exercise={editTarget ?? null}
+    onClose={() => { setAddModal(false); setEditTarget(null) }}
+    onSave={load}
+  />
+)}
     </div>
   )
 }
