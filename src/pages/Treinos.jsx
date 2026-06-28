@@ -67,9 +67,12 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
   const save = async () => {
     setSaving(true)
     await supabase.from('fitness_workout_logs').insert({
-    user_id: userId, date: date,
-      plan_id: planId, plan_name: planName,
-      exercise_id: exercise.id, exercise_name: exercise.name,
+      user_id: userId,
+      date: date,
+      plan_id: planId,
+      plan_name: planName,
+      exercise_id: exercise.id,
+      exercise_name: exercise.name,
       set_number: 1,
       reps: reps ? parseInt(reps) : null,
       load: load ? parseFloat(load.replace(',', '.')) : null,
@@ -98,16 +101,13 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
             <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 18, color: 'var(--c-text-700)', fontStyle: 'italic' }}>Série registrada</p>
           </div>
         ) : (
-  <>
-    <div style={{ marginBottom: 16 }}>
+          <>
+            <div style={{ marginBottom: 16 }}>
               <label className="input-label">Data</label>
               <input className="input-field" type="date"
+                value={date}
                 onChange={e => setDate(e.target.value)} />
             </div>
-
-            <label className="input-label" style={{ display: 'block', marginBottom: 10 }}>Tipo de atividade</label>
-            </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               <div>
                 <label className="input-label">Carga (kg)</label>
@@ -143,7 +143,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
 const ACTIVITY_TYPES = ['Força', 'Aeróbico', 'Yoga', 'Pilates', 'Caminhada', 'Outro']
 
 function QuickSessionModal({ userId, currentPlan, onClose, onSave }) {
-   const [date, setDate]         = useState(today())
+  const [date, setDate]         = useState(today())
   const [type, setType]         = useState('Aeróbico')
   const [duration, setDuration] = useState('')
   const [notes, setNotes]       = useState('')
@@ -181,7 +181,6 @@ function QuickSessionModal({ userId, currentPlan, onClose, onSave }) {
         <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)', marginBottom: 24 }}>
           Sem detalhar exercícios — só marcar ✓
         </p>
-
         {done ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '20px 0' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--c-sage-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -206,7 +205,6 @@ function QuickSessionModal({ userId, currentPlan, onClose, onSave }) {
                 </button>
               ))}
             </div>
-
             <div style={{ marginBottom: 14 }}>
               <label className="input-label">Duração (min)</label>
               <input className="input-field" type="text" inputMode="numeric"
@@ -214,13 +212,11 @@ function QuickSessionModal({ userId, currentPlan, onClose, onSave }) {
                 onChange={e => setDuration(e.target.value)}
                 style={{ textAlign: 'center', fontSize: 22, fontFamily: 'var(--font-display)' }} />
             </div>
-
             <div style={{ marginBottom: 24 }}>
               <label className="input-label">Observação</label>
               <input className="input-field" type="text" placeholder="Ex: corrida no parque, aula nova..."
                 value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
-
             <button className="btn-primary" onClick={save} disabled={saving}>
               {saving ? 'Salvando...' : '✓ Registrar sessão'}
             </button>
@@ -272,18 +268,18 @@ function AddProgramModal({ userId, onClose, onSave }) {
 
 /* ─── MAIN PAGE ──────────────────────────────────────────────────── */
 export default function Treinos({ userId }) {
-  const [programs, setPrograms]         = useState([])
-  const [activeProg, setActiveProg]     = useState(null)
+  const [programs, setPrograms]           = useState([])
+  const [activeProg, setActiveProg]       = useState(null)
   const [activeVariant, setActiveVariant] = useState('A')
-  const [plans, setPlans]               = useState([])
-  const [exercises, setExercises]       = useState([])
-  const [todayLogs, setTodayLogs]       = useState([])
-  const [recentLogs, setRecentLogs]     = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [logTarget, setLogTarget]       = useState(null)
-  const [modal, setModal]               = useState(null)
-  const [quickModal, setQuickModal]     = useState(false)
-  const [refreshKey, setRefreshKey]     = useState(0)
+  const [plans, setPlans]                 = useState([])
+  const [exercises, setExercises]         = useState([])
+  const [todayLogs, setTodayLogs]         = useState([])
+  const [recentLogs, setRecentLogs]       = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [logTarget, setLogTarget]         = useState(null)
+  const [modal, setModal]                 = useState(null)
+  const [quickModal, setQuickModal]       = useState(false)
+  const [refreshKey, setRefreshKey]       = useState(0)
 
   const refresh = () => setRefreshKey(k => k + 1)
 
@@ -345,7 +341,6 @@ export default function Treinos({ userId }) {
   const currentPlan = plans.find(p => p.variant === activeVariant) ?? plans[0]
   const variants    = ['A', 'B', 'C'].filter(v => plans.some(p => p.variant === v))
 
-  // Sessão rápida = log sem exercise_id
   const todayQuick = todayLogs.find(l => !l.exercise_id && l.exercise_name)
 
   const byDate = recentLogs.reduce((acc, l) => {
@@ -427,7 +422,7 @@ export default function Treinos({ userId }) {
         </div>
       )}
 
-      {/* ── QUICK SESSION BANNER ── */}
+      {/* Quick session banner */}
       <div style={{ padding: '0 var(--page-pad-x)', marginBottom: 14 }}>
         {todayQuick ? (
           <div style={{
