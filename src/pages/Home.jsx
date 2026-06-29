@@ -801,12 +801,35 @@ export default function Home({ userId }) {
     if(data?.todayDiaryId) setMoodDiaryId(data.todayDiaryId)
   },[data])
 
-  const saveMood=async(level)=>{
-    const same=todayMoodLocal===level
-    const newLevel=same?null:level
-    setTodayMoodLocal(newLevel)
-    const todayStr=today()
-    const moodVal=newLevel?String(newLevel):null
+  const saveMood = async (level) => {
+  const same = todayMoodLocal === level
+  const newLevel = same ? null : level
+  setTodayMoodLocal(newLevel)
+  const todayStr = today()
+  const moodVal = newLevel ? String(newLevel) : null
+
+  // Sempre busca antes de decidir INSERT ou UPDATE
+  const { data: de } = await supabase.from('diary_entries')
+    .select('id').eq('user_id', userId).eq('date', todayStr).maybeSingle()
+
+  if (de) {
+    await supabase.from('diary_entries').update({ mood: moodVal }).eq('id', de.id)
+    setMoodDiaryId(de.id)
+  } else if (newLevel) {
+    const { data: nd } = await supabase.from('diary_entries')
+      .insert({ user_id: userId, date: todayStr, mood: moodVal })
+      .select('id').maybeSingle()
+    if (nd?.id) setMoodDiaryId(nd.id)
+  }
+
+  const { data: dt } = await supabase.from('daily_tracking')
+    .select('id').eq('user_id', userId).eq('date', todayStr).maybeSingle()
+  if (dt) await supabase.from('daily_tracking').update({ mood: moodVal }).eq('id', dt.id)
+  else if (newLevel) await supabase.from('daily_tracking')
+    .insert({ user_id: userId, date: todayStr, mood: moodVal })
+
+  reload()
+}
 
     if(moodDiaryId){
       await supabase.from('diary_entries').update({mood:moodVal}).eq('id',moodDiaryId)
