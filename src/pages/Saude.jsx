@@ -128,13 +128,25 @@ function ConsultaModal({item, userId, onClose, onSave}) {
   })
   const [saving,setSaving] = useState(false)
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
-  const save=async()=>{
-    if(!f.date||!f.specialty) return
-    setSaving(true)
-    if(isNew){await supabase.from('health_consultations').insert({user_id:userId,...f})}
-    else{await supabase.from('health_consultations').update(f).eq('id',item.id)}
-    onSave?.(); onClose()
+  const save = async () => {
+  if (!f.date || !f.specialty) return
+  setSaving(true)
+  // Converte strings vazias em null para colunas date/time
+  const payload = {
+    ...f,
+    time:             f.time             || null,
+    next_return_date: f.next_return_date  || null,
+    diagnosis:        f.diagnosis         || null,
+    location:         f.location          || null,
+    doctor:           f.doctor            || null,
   }
+  if (isNew) {
+    await supabase.from('health_consultations').insert({ user_id: userId, ...payload })
+  } else {
+    await supabase.from('health_consultations').update(payload).eq('id', item.id)
+  }
+  onSave?.(); onClose()
+}
   return (
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
