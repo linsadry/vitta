@@ -831,18 +831,6 @@ export default function Home({ userId }) {
   reload()
 }
 
-    if(moodDiaryId){
-      await supabase.from('diary_entries').update({mood:moodVal}).eq('id',moodDiaryId)
-    } else if(newLevel){
-      const{data:nd}=await supabase.from('diary_entries').insert({user_id:userId,date:todayStr,mood:moodVal}).select('id').maybeSingle()
-      if(nd?.id) setMoodDiaryId(nd.id)
-    }
-    const{data:dt}=await supabase.from('daily_tracking').select('id').eq('user_id',userId).eq('date',todayStr).maybeSingle()
-    if(dt) await supabase.from('daily_tracking').update({mood:moodVal}).eq('id',dt.id)
-    else if(newLevel) await supabase.from('daily_tracking').insert({user_id:userId,date:todayStr,mood:moodVal})
-    reload()
-  }
-
   const hmPrev=()=>{ if(hmMonth===0){setHmYear(y=>y-1);setHmMonth(11)}else setHmMonth(m=>m-1) }
   const hmNext=()=>{ if(hmMonth===11){setHmYear(y=>y+1);setHmMonth(0)}else setHmMonth(m=>m+1) }
 
