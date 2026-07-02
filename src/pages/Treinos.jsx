@@ -269,7 +269,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
             </p>
           </div>
         )}
-
+ 
         {done ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '20px 0' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--c-sage-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
