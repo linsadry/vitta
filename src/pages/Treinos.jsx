@@ -664,47 +664,238 @@ function ProgramHistoryModal({ userId, activeProg, onClose, onSwitch }) {
     </div>
   )
 }
+/* ─── COPY WEIGHTS POPUP ─────────────────────────────────────────── */
+function CopyWeightsPopup({ onYes, onNo }) {
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.35)' }} onClick={onNo} />
+      <div style={{
+        position:'relative', width:'100%', maxWidth:480,
+        background:'var(--c-base-0)', borderRadius:'24px 24px 0 0',
+        padding:'28px 24px 40px', boxShadow:'0 -8px 40px rgba(0,0,0,0.12)',
+      }}>
+        <div style={{ width:32, height:4, borderRadius:2, background:'var(--c-border)', margin:'0 auto 24px' }} />
+        <p style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:500, color:'var(--c-text-900)', marginBottom:8, textAlign:'center' }}>
+          Copiar cargas anteriores?
+        </p>
+        <p style={{ fontFamily:'var(--font-ui)', fontSize:13, color:'var(--c-text-400)', textAlign:'center', marginBottom:28, lineHeight:1.6 }}>
+          Os pesos do último treino serão preenchidos automaticamente.
+          Ajuste apenas o que aumentar.
+        </p>
+        <div style={{ display:'flex', gap:12 }}>
+          <button onClick={onNo} style={{
+            flex:1, padding:'14px 0', borderRadius:'var(--r-full)',
+            border:'1.5px solid var(--c-border)', background:'none',
+            fontFamily:'var(--font-ui)', fontSize:14, color:'var(--c-text-500)', cursor:'pointer',
+          }}>Não</button>
+          <button onClick={onYes} style={{
+            flex:2, padding:'14px 0', borderRadius:'var(--r-full)',
+            border:'none', background:'var(--c-text-900)',
+            fontFamily:'var(--font-ui)', fontSize:14, fontWeight:600, color:'var(--c-base-0)', cursor:'pointer',
+          }}>Sim, copiar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── SESSION SUMMARY SHEET ──────────────────────────────────────── */
+function SessionSummarySheet({ durationSecs, exercises, sessionLogs, onClose, onDone }) {
+  const fmtDur = (s) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    if (m >= 60) return `${Math.floor(m/60)}h ${m%60}min`
+    return `${m}min ${String(sec).padStart(2,'0')}s`
+  }
+
+  const totalVol = sessionLogs.reduce((acc, l) => acc + ((l.load||0) * (l.reps||0)), 0)
+  const maxLoad  = sessionLogs.length ? Math.max(...sessionLogs.map(l => l.load||0)) : 0
+  const sets     = sessionLogs.length
+
+  // PRs: exercícios onde a carga hoje > carga anterior
+  const prs = exercises.filter(ex => {
+    const todaySets = sessionLogs.filter(l => l.exercise_id === ex.id)
+    const todayMax  = todaySets.length ? Math.max(...todaySets.map(l => l.load||0)) : 0
+    const prevMax   = ex._prevMax || 0
+    return todayMax > 0 && todayMax > prevMax
+  })
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, display:'flex', alignItems:'flex-end' }}>
+      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)' }} />
+      <div style={{
+        position:'relative', width:'100%', background:'var(--c-base-0)',
+        borderRadius:'24px 24px 0 0', padding:'28px 24px 48px',
+        maxHeight:'88vh', overflowY:'auto',
+      }}>
+        <div style={{ width:32, height:4, borderRadius:2, background:'var(--c-border)', margin:'0 auto 24px' }} />
+
+        {/* Header */}
+        <div style={{ textAlign:'center', marginBottom:28 }}>
+          <div style={{
+            width:64, height:64, borderRadius:'50%', background:'var(--c-sage-faint)',
+            display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px',
+          }}>
+            <Check size={28} strokeWidth={2.5} style={{ color:'var(--c-sage)' }} />
+          </div>
+          <h2 style={{ fontFamily:'var(--font-display)', fontSize:24, fontWeight:500, color:'var(--c-text-900)', marginBottom:4 }}>
+            Treino finalizado
+          </h2>
+          <p style={{ fontFamily:'var(--font-editorial)', fontSize:15, color:'var(--c-text-400)', fontStyle:'italic' }}>
+            Excelente trabalho hoje.
+          </p>
+        </div>
+
+        {/* Stats grid */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
+          {[
+            { label:'Duração', value: fmtDur(durationSecs) },
+            { label:'Séries totais', value: String(sets) },
+            { label:'Volume total', value: totalVol > 0 ? `${totalVol.toLocaleString('pt-BR')} kg` : '—' },
+            { label:'Maior carga', value: maxLoad > 0 ? `${maxLoad} kg` : '—' },
+          ].map(({ label, value }) => (
+            <div key={label} style={{
+              background:'var(--c-base-1)', borderRadius:'var(--r-md)',
+              padding:'14px 14px 12px', textAlign:'center',
+            }}>
+              <p style={{ fontFamily:'var(--font-ui)', fontSize:10, color:'var(--c-text-300)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>{label}</p>
+              <p style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:500, color:'var(--c-text-900)' }}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* PRs */}
+        {prs.length > 0 && (
+          <div style={{ background:'rgba(138,158,140,0.1)', border:'1px solid rgba(138,158,140,0.25)', borderRadius:'var(--r-md)', padding:'14px 16px', marginBottom:20 }}>
+            <p style={{ fontFamily:'var(--font-ui)', fontSize:11, color:'var(--c-sage)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600, marginBottom:10 }}>
+              Recordes pessoais
+            </p>
+            {prs.map(ex => {
+              const todaySets = sessionLogs.filter(l => l.exercise_id === ex.id)
+              const todayMax  = Math.max(...todaySets.map(l => l.load||0))
+              const delta     = todayMax - (ex._prevMax||0)
+              return (
+                <div key={ex.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <span style={{ fontFamily:'var(--font-ui)', fontSize:13, color:'var(--c-text-700)' }}>{ex.name}</span>
+                  <span style={{ fontFamily:'var(--font-ui)', fontSize:13, fontWeight:600, color:'var(--c-sage)' }}>
+                    {ex._prevMax ? `+${delta} kg` : 'Primeiro registro'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <button onClick={onDone} style={{
+          width:'100%', padding:'16px 0', borderRadius:'var(--r-full)',
+          border:'none', background:'var(--c-text-900)',
+          fontFamily:'var(--font-ui)', fontSize:15, fontWeight:600,
+          color:'var(--c-base-0)', cursor:'pointer',
+        }}>
+          Concluir
+        </button>
+      </div>
+    </div>
+  )
+}
 
 /* ─── WORKOUT VIEW ───────────────────────────────────────────────── */
 function WorkoutView({ plan, userId, prog, onBack, onRefresh }) {
-  const [exercises, setExercises]   = useState([])
-  const [lastLogs, setLastLogs]     = useState({})
-  const [logTarget, setLogTarget]   = useState(null)
-  const [histTarget, setHistTarget] = useState(null)
-  const [addModal, setAddModal]     = useState(false)
-  const [editTarget, setEditTarget] = useState(null)
-  const [loading, setLoading]       = useState(true)
+  const [exercises, setExercises]     = useState([])
+  const [lastLogs, setLastLogs]       = useState({})
+  const [logTarget, setLogTarget]     = useState(null)
+  const [histTarget, setHistTarget]   = useState(null)
+  const [addModal, setAddModal]       = useState(false)
+  const [editTarget, setEditTarget]   = useState(null)
+  const [loading, setLoading]         = useState(true)
+
+  // Session state
+  const [sessionMode, setSessionMode]       = useState(false)
+  const [showCopyPopup, setShowCopyPopup]   = useState(false)
+  const [completedIds, setCompletedIds]     = useState(new Set())
+  const [sessionStart, setSessionStart]     = useState(null)
+  const [elapsed, setElapsed]               = useState(0)
+  const [sessionLogs, setSessionLogs]       = useState([])
+  const [showSummary, setShowSummary]       = useState(false)
+  const [copyWeights, setCopyWeights]       = useState(false)
+
+  // Timer
+  useEffect(() => {
+    if (!sessionMode || !sessionStart) return
+    const iv = setInterval(() => setElapsed(Math.floor((Date.now() - sessionStart) / 1000)), 1000)
+    return () => clearInterval(iv)
+  }, [sessionMode, sessionStart])
+
+  const fmtElapsed = (s) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
     const { data: exs } = await supabase.from('fitness_workout_exercises')
       .select('*').eq('plan_id', plan.id).order('order_idx')
     const list = exs || []
-    setExercises(list)
 
     if (list.length) {
       const ids = list.map(e => e.id)
       const { data: logs } = await supabase.from('fitness_workout_logs')
         .select('date, load, reps, set_number, exercise_id')
-        .in('exercise_id', ids)
-        .eq('user_id', userId)
+        .in('exercise_id', ids).eq('user_id', userId)
         .order('date', { ascending: false })
         .order('set_number', { ascending: true })
-        .limit(200)
+        .limit(300)
 
       const map = {}
       if (logs) {
         logs.forEach(l => {
-          if (!map[l.exercise_id]) map[l.exercise_id] = { date: l.date, sets: [] }
+          if (!map[l.exercise_id]) map[l.exercise_id] = { date: l.date, sets: [], maxLoad: 0 }
           if (l.date === map[l.exercise_id].date) map[l.exercise_id].sets.push(l)
+          map[l.exercise_id].maxLoad = Math.max(map[l.exercise_id].maxLoad, l.load || 0)
         })
       }
+      // Attach _prevMax to each exercise for PR detection
+      list.forEach(ex => { ex._prevMax = map[ex.id]?.maxLoad || 0 })
       setLastLogs(map)
     }
+    setExercises(list)
     setLoading(false)
   }, [plan.id, userId])
 
   useEffect(() => { load() }, [load])
+
+  const startSession = (withCopy) => {
+    setCopyWeights(withCopy)
+    setShowCopyPopup(false)
+    setSessionMode(true)
+    setSessionStart(Date.now())
+    setElapsed(0)
+    setCompletedIds(new Set())
+    setSessionLogs([])
+  }
+
+  const handleExerciseLogged = (exerciseId, newLogs) => {
+    setCompletedIds(prev => new Set([...prev, exerciseId]))
+    setSessionLogs(prev => [...prev.filter(l => l.exercise_id !== exerciseId), ...newLogs])
+    setLogTarget(null)
+  }
+
+  const handleFinalize = async () => {
+    const durationMins = Math.round(elapsed / 60)
+    const totalVol = sessionLogs.reduce((acc, l) => acc + ((l.load||0) * (l.reps||0)), 0)
+    // Salva resumo da sessão no log (uma entrada especial)
+    await supabase.from('fitness_workout_logs').insert({
+      user_id: userId,
+      date: today(),
+      plan_id: plan.id,
+      plan_name: plan.name,
+      exercise_id: null,
+      exercise_name: `Sessão · Treino ${plan.variant} · ${durationMins}min · ${totalVol}kg vol`,
+      set_number: 0,
+    })
+    setShowSummary(true)
+  }
 
   const deleteExercise = async (id) => {
     if (!confirm('Excluir exercício?')) return
@@ -712,107 +903,275 @@ function WorkoutView({ plan, userId, prog, onBack, onRefresh }) {
     load()
   }
 
+  const allDone = exercises.length > 0 && completedIds.size >= exercises.length
+  const progress = exercises.length ? (completedIds.size / exercises.length) : 0
+
   return (
-    <div style={{ minHeight: '100%', paddingBottom: 100 }}>
+    <div style={{ minHeight:'100%', paddingBottom: sessionMode ? 120 : 100 }}>
+
       {/* Header */}
-      <div style={{ padding: '52px var(--page-pad-x) 16px', borderBottom: '1px solid var(--c-border-light)', display: 'flex', alignItems: 'flex-end', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-400)', padding: '0 0 2px', flexShrink: 0 }}>
-          <ChevronLeft size={22} strokeWidth={1.8} />
-        </button>
-        <div>
-          <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--c-text-300)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
-            {prog?.name}
-          </p>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--c-text-900)', letterSpacing: '-0.02em' }}>
-            Treino {plan.variant}
-          </h1>
-          {plan.name && plan.name !== `Treino ${plan.variant}` && (
-            <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-400)', fontStyle: 'italic' }}>{plan.name}</p>
+      <div style={{
+        padding:'52px var(--page-pad-x) 16px',
+        borderBottom:'1px solid var(--c-border-light)',
+      }}>
+        <div style={{ display:'flex', alignItems:'flex-end', gap:12 }}>
+          <button onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--c-text-400)', padding:'0 0 2px', flexShrink:0 }}>
+            <ChevronLeft size={22} strokeWidth={1.8} />
+          </button>
+          <div style={{ flex:1, minWidth:0 }}>
+            <p style={{ fontFamily:'var(--font-ui)', fontSize:11, color:'var(--c-text-300)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>
+              {prog?.name}
+            </p>
+            <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:500, color:'var(--c-text-900)', letterSpacing:'-0.02em' }}>
+              Treino {plan.variant}
+            </h1>
+          </div>
+          {/* Timer */}
+          {sessionMode && (
+            <div style={{
+              background:'var(--c-text-900)', borderRadius:'var(--r-full)',
+              padding:'6px 14px', flexShrink:0,
+            }}>
+              <span style={{ fontFamily:'var(--font-ui)', fontSize:14, fontWeight:600, color:'var(--c-base-0)', fontVariantNumeric:'tabular-nums' }}>
+                {fmtElapsed(elapsed)}
+              </span>
+            </div>
           )}
         </div>
+
+        {/* Session progress bar */}
+        {sessionMode && exercises.length > 0 && (
+          <div style={{ marginTop:14 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+              <span style={{ fontFamily:'var(--font-ui)', fontSize:12, color:'var(--c-text-400)' }}>
+                {completedIds.size} de {exercises.length} exercícios
+              </span>
+              <span style={{ fontFamily:'var(--font-ui)', fontSize:12, color:'var(--c-sage)', fontWeight:500 }}>
+                {Math.round(progress * 100)}%
+              </span>
+            </div>
+            <div style={{ height:4, background:'var(--c-base-2)', borderRadius:99, overflow:'hidden' }}>
+              <div style={{ height:'100%', width:`${progress * 100}%`, background:'var(--c-sage)', borderRadius:99, transition:'width 0.4s' }} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Exercises */}
-      <div style={{ padding: '16px var(--page-pad-x)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding:'16px var(--page-pad-x)', display:'flex', flexDirection:'column', gap:10 }}>
         {loading ? (
           Array.from({ length: 4 }, (_, i) => (
-            <div key={i} style={{ height: 88, borderRadius: 'var(--r-md)' }} className="loading-shimmer" />
+            <div key={i} style={{ height:88, borderRadius:'var(--r-md)' }} className="loading-shimmer" />
           ))
         ) : exercises.length === 0 ? (
           <div className="empty-state">
-            <Dumbbell size={28} style={{ color: 'var(--c-text-100)' }} />
+            <Dumbbell size={28} style={{ color:'var(--c-text-100)' }} />
             <p className="empty-state-text">Nenhum exercício. Adicione abaixo.</p>
           </div>
         ) : exercises.map(ex => {
           const last = lastLogs[ex.id]
+          const done = completedIds.has(ex.id)
+
+          // Progressão: compara carga da sessão atual com carga anterior
+          const sessionExLogs = sessionLogs.filter(l => l.exercise_id === ex.id)
+          const sessionMax    = sessionExLogs.length ? Math.max(...sessionExLogs.map(l => l.load||0)) : 0
+          const prevMax       = ex._prevMax || 0
+          const isNewPR       = sessionMax > 0 && sessionMax > prevMax
+          const delta         = sessionMax - prevMax
+
           return (
-            <div key={ex.id} className="card" style={{ padding: '14px 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 500, color: 'var(--c-text-900)', marginBottom: 2 }}>{ex.name}</p>
-                  <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-400)' }}>
+            <div key={ex.id} className="card" style={{
+              padding:'14px 16px',
+              opacity: sessionMode && done ? 0.6 : 1,
+              transition:'opacity 0.3s',
+              border: done ? '1.5px solid var(--c-sage)' : undefined,
+            }}>
+              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  {/* Checkbox in session mode */}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+                    {sessionMode && (
+                      <div style={{
+                        width:20, height:20, borderRadius:6, flexShrink:0,
+                        background: done ? 'var(--c-sage)' : 'transparent',
+                        border: `1.5px solid ${done ? 'var(--c-sage)' : 'var(--c-border)'}`,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>
+                        {done && <Check size={11} strokeWidth={3} style={{ color:'white' }} />}
+                      </div>
+                    )}
+                    <p style={{ fontFamily:'var(--font-ui)', fontSize:15, fontWeight:500, color:'var(--c-text-900)', textDecoration: done ? 'line-through' : 'none' }}>
+                      {ex.name}
+                    </p>
+                  </div>
+                  <p style={{ fontFamily:'var(--font-ui)', fontSize:12, color:'var(--c-text-400)', marginLeft: sessionMode ? 28 : 0 }}>
                     {[ex.target_sets && `${ex.target_sets} séries`, ex.target_reps && `${ex.target_reps} reps`, ex.target_load && `${ex.target_load} kg`].filter(Boolean).join(' · ')}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                  <button onClick={() => setHistTarget(ex)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-300)', padding: 4 }}><BarChart2 size={15} strokeWidth={1.8} /></button>
-                  <button onClick={() => setEditTarget(ex)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-300)', padding: 4 }}><Edit2 size={14} strokeWidth={1.8} /></button>
-                  <button onClick={() => deleteExercise(ex.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-200)', padding: 4 }}><Trash2 size={14} strokeWidth={1.8} /></button>
-                </div>
+
+                {/* Actions — só em modo visualização */}
+                {!sessionMode && (
+                  <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
+                    <button onClick={() => setHistTarget(ex)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--c-text-300)', padding:4 }}><BarChart2 size={15} strokeWidth={1.8} /></button>
+                    <button onClick={() => setEditTarget(ex)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--c-text-300)', padding:4 }}><Edit2 size={14} strokeWidth={1.8} /></button>
+                    <button onClick={() => deleteExercise(ex.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--c-text-200)', padding:4 }}><Trash2 size={14} strokeWidth={1.8} /></button>
+                  </div>
+                )}
+
+                {/* Badge PR */}
+                {isNewPR && (
+                  <div style={{
+                    background:'var(--c-sage-faint)', borderRadius:'var(--r-full)',
+                    padding:'3px 10px', flexShrink:0,
+                  }}>
+                    <span style={{ fontFamily:'var(--font-ui)', fontSize:11, fontWeight:600, color:'var(--c-sage)' }}>
+                      ▲ {prevMax > 0 ? `+${delta} kg` : 'Novo'}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginLeft: sessionMode ? 28 : 0 }}>
                 {last ? (
-                  <div style={{ background: 'var(--c-base-2)', borderRadius: 'var(--r-sm)', padding: '6px 10px' }}>
-                    <p style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--c-text-300)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Última · {fmtShort(last.date)}
+                  <div style={{ background:'var(--c-base-2)', borderRadius:'var(--r-sm)', padding:'6px 10px' }}>
+                    <p style={{ fontFamily:'var(--font-ui)', fontSize:10, color:'var(--c-text-300)', marginBottom:2, textTransform:'uppercase', letterSpacing:'0.04em' }}>
+                      Último · {fmtShort(last.date)}
                     </p>
-                    <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500, color: 'var(--c-text-700)' }}>
+                    <p style={{ fontFamily:'var(--font-ui)', fontSize:13, fontWeight:500, color:'var(--c-text-700)' }}>
                       {last.sets.map(s => `${s.load ?? '?'}kg`).join(' · ')}
-                      <span style={{ fontWeight: 400, color: 'var(--c-text-400)' }}> × {last.sets[0]?.reps}</span>
+                      <span style={{ fontWeight:400, color:'var(--c-text-400)' }}> × {last.sets[0]?.reps}</span>
                     </p>
                   </div>
                 ) : (
-                  <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-200)', fontStyle: 'italic' }}>Sem registro anterior</p>
+                  <p style={{ fontFamily:'var(--font-ui)', fontSize:12, color:'var(--c-text-200)', fontStyle:'italic' }}>
+                    {sessionMode ? 'Primeiro registro' : 'Sem registro anterior'}
+                  </p>
                 )}
-                <button onClick={() => setLogTarget(ex)} style={{
-                  padding: '9px 16px', borderRadius: 'var(--r-full)', border: 'none', cursor: 'pointer',
-                  background: 'var(--c-text-900)', color: 'var(--c-base-0)',
-                  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500,
-                }}>Registrar</button>
+
+                <button
+                  onClick={() => setLogTarget(ex)}
+                  disabled={sessionMode && done}
+                  style={{
+                    padding:'9px 16px', borderRadius:'var(--r-full)', border:'none', cursor:'pointer',
+                    background: done ? 'var(--c-sage-faint)' : 'var(--c-text-900)',
+                    color: done ? 'var(--c-sage)' : 'var(--c-base-0)',
+                    fontFamily:'var(--font-ui)', fontSize:13, fontWeight:500,
+                    opacity: sessionMode && done ? 0.7 : 1,
+                    display:'flex', alignItems:'center', gap:5,
+                  }}
+                >
+                  {done ? <><Check size={12} strokeWidth={2.5} /> Feito</> : 'Registrar'}
+                </button>
               </div>
             </div>
           )
         })}
 
-        {/* Add exercise button */}
-        <button onClick={() => setAddModal(true)} style={{
-          width: '100%', padding: '13px', borderRadius: 'var(--r-md)',
-          border: '1.5px dashed var(--c-border)', background: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          color: 'var(--c-text-400)', fontFamily: 'var(--font-ui)', fontSize: 13,
-          marginTop: 4,
-        }}>
-          <Plus size={15} strokeWidth={2} /> Adicionar exercício
-        </button>
+        {/* Add exercise — só fora de sessão */}
+        {!sessionMode && (
+          <button onClick={() => setAddModal(true)} style={{
+            width:'100%', padding:'13px', borderRadius:'var(--r-md)',
+            border:'1.5px dashed var(--c-border)', background:'none', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            color:'var(--c-text-400)', fontFamily:'var(--font-ui)', fontSize:13, marginTop:4,
+          }}>
+            <Plus size={15} strokeWidth={2} /> Adicionar exercício
+          </button>
+        )}
       </div>
 
+      {/* ── BOTÃO FIXO INFERIOR ── */}
+      <div style={{
+        position:'fixed', bottom:0, left:0, right:0, zIndex:30,
+        padding:'16px 24px 32px',
+        background:'linear-gradient(to top, var(--c-base-0) 80%, transparent)',
+      }}>
+        {!sessionMode ? (
+          <button
+            onClick={() => setShowCopyPopup(true)}
+            style={{
+              width:'100%', padding:'16px 0', borderRadius:'var(--r-full)',
+              border:'none', background:'var(--c-text-900)',
+              fontFamily:'var(--font-ui)', fontSize:15, fontWeight:700,
+              color:'var(--c-base-0)', cursor:'pointer',
+              letterSpacing:'0.02em',
+            }}
+          >
+            Iniciar treino
+          </button>
+        ) : allDone ? (
+          <button
+            onClick={handleFinalize}
+            style={{
+              width:'100%', padding:'16px 0', borderRadius:'var(--r-full)',
+              border:'none', background:'var(--c-sage)',
+              fontFamily:'var(--font-ui)', fontSize:15, fontWeight:700,
+              color:'white', cursor:'pointer',
+              letterSpacing:'0.02em',
+              animation:'pulse 1.5s infinite',
+            }}
+          >
+            Finalizar treino
+          </button>
+        ) : (
+          <div style={{
+            background:'var(--c-base-1)', borderRadius:'var(--r-full)',
+            padding:'12px 20px', display:'flex', alignItems:'center', justifyContent:'space-between',
+          }}>
+            <span style={{ fontFamily:'var(--font-ui)', fontSize:13, color:'var(--c-text-500)' }}>
+              {completedIds.size}/{exercises.length} concluídos
+            </span>
+            <span style={{ fontFamily:'var(--font-ui)', fontSize:13, fontWeight:600, color:'var(--c-text-900)' }}>
+              {fmtElapsed(elapsed)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Popups & Modals */}
+      {showCopyPopup && (
+        <CopyWeightsPopup
+          onYes={() => startSession(true)}
+          onNo={() => startSession(false)}
+        />
+      )}
+
       {logTarget && (
-        <LogModal exercise={logTarget} planId={plan.id} planName={plan.name}
-          userId={userId} onClose={() => setLogTarget(null)} onSave={load} />
+        <LogModal
+          exercise={logTarget}
+          planId={plan.id}
+          planName={plan.name}
+          userId={userId}
+          prefillFromLast={copyWeights}
+          lastSetsData={lastLogs[logTarget.id]?.sets || []}
+          onClose={() => setLogTarget(null)}
+          onSave={(newLogs) => {
+            if (sessionMode) handleExerciseLogged(logTarget.id, newLogs)
+            else { setLogTarget(null); load() }
+          }}
+        />
       )}
       {histTarget && (
         <HistoryModal exercise={histTarget} userId={userId} onClose={() => setHistTarget(null)} />
       )}
       {(addModal || editTarget) && (
-  <AddExerciseModal
-    planId={plan.id}
-    userId={userId}
-    exercise={editTarget ?? null}
-    onClose={() => { setAddModal(false); setEditTarget(null) }}
-    onSave={load}
-  />
-)}
+        <AddExerciseModal
+          planId={plan.id}
+          userId={userId}
+          exercise={editTarget ?? null}
+          onClose={() => { setAddModal(false); setEditTarget(null) }}
+          onSave={load}
+        />
+      )}
+      {showSummary && (
+        <SessionSummarySheet
+          durationSecs={elapsed}
+          exercises={exercises}
+          sessionLogs={sessionLogs}
+          onDone={() => { setShowSummary(false); onBack(); onRefresh?.() }}
+          onClose={() => setShowSummary(false)}
+        />
+      )}
     </div>
   )
 }
