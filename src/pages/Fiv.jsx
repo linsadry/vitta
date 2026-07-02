@@ -289,7 +289,6 @@ export default function Fiv({ userId }) {
                     background: 'var(--c-surface-raised)', border: `1px solid ${cfg.ring}22`,
                     borderRadius: 'var(--r-md)', cursor: 'pointer',
                     boxShadow: st === 'ativo' ? `0 0 0 1.5px ${cfg.ring}` : 'var(--shadow-xs)',
-                    background: cfg.bg,
                   }}>
                     {/* Status circle */}
                     <div style={{
