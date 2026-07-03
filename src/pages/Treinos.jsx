@@ -37,7 +37,7 @@ function calcProgress(startDate, endDate) {
 }
 
 /* ─── FAB ────────────────────────────────────────────────────────── */
-const QUICK_TYPES = ['Força', 'Corrida', 'Caminhada', 'Yoga', 'Pilates', 'Alongamento', 'Outro']
+const QUICK_TYPES = ['Força', 'Aeróbico', 'Corrida', 'Caminhada', 'Yoga', 'Pilates', 'Funcional', 'Alongamento', 'Outro']
 
 function FABMenu({ userId, programs, activeProg, plans, onClose, onSaved }) {
   const [step, setStep]         = useState('type')   // 'type' | 'strength' | 'cardio'
@@ -49,8 +49,15 @@ function FABMenu({ userId, programs, activeProg, plans, onClose, onSaved }) {
   const [distance, setDistance] = useState('')
   const [fc, setFc]             = useState('')
   const [notes, setNotes]       = useState('')
+  const [customType, setCustomType] = useState('')
   const [saving, setSaving]     = useState(false)
   const [done, setDone]         = useState(false)
+  const [customType, setCustomType] = useState('')
+// ...
+const chooseType = (t) => { setType(t); setStep(t === 'Força' ? 'strength' : 'cardio') }
+// no save():
+const finalType = type === 'Outro' && customType.trim() ? customType.trim() : type
+const label = type === 'Força' ? `Força · Treino ${plan?.variant ?? ''}` : duration ? `${finalType} · ${duration} min` : finalType
 
   useEffect(() => {
     if (selProg && selProg !== activeProg) {
@@ -70,9 +77,10 @@ function FABMenu({ userId, programs, activeProg, plans, onClose, onSaved }) {
   const save = async () => {
     setSaving(true)
     const plan = progPlans.find(p => p.id === selPlan)
+    const finalType = type === 'Outro' && customType.trim() ? customType.trim() : type
     const label = type === 'Força'
       ? `Força · Treino ${plan?.variant ?? ''}`
-      : duration ? `${type} · ${duration} min` : type
+      : duration ? `${finalType} · ${duration} min` : finalType
 
     await supabase.from('fitness_workout_logs').insert({
       user_id: userId,
@@ -159,6 +167,20 @@ function FABMenu({ userId, programs, activeProg, plans, onClose, onSaved }) {
           </>
         ) : (
           <>
+            ) : (
+          <>
+            {type === 'Outro' && (
+              <div style={{ marginBottom: 14 }}>
+                <label className="input-label">Nome da atividade</label>
+                <input className="input-field" type="text" placeholder="Ex: Boxe, Funcional"
+                  value={customType} onChange={e => setCustomType(e.target.value)} />
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label className="input-label">Duração (min)</label>
+                <input className="input-field" type="text" inputMode="numeric" placeholder="45" value={duration} onChange={e => setDuration(e.target.value)} style={{ textAlign: 'center', fontSize: 20 }} />
+              </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label className="input-label">Duração (min)</label>
