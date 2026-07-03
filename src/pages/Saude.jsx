@@ -72,8 +72,7 @@ function useOverviewData(userId) {
       labResults: labResults||[], nextExam,
       historicoCount: histList.length, historicoYears,
     })
-    setLoading(false)
-  }, [userId])
+    ssetLoading(false)
   }, [userId])
   useEffect(()=>{load()},[load])
   return {data, loading, reload:load}
