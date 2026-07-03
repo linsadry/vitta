@@ -37,7 +37,7 @@ function useOverviewData(userId) {
       {data:fivStages},{data:weights},{data:tracking},{data:labResults}
     ] = await Promise.all([
       supabase.from('health_consultations').select('date,specialty,doctor,time').eq('user_id',userId).gte('date',todayStr).order('date').limit(1).maybeSingle(),
-      supabase.from('health_consultations').select('id,date,specialty,doctor').eq('user_id',userId).order('date',{ascending:false}),
+      supabase.from('health_consultations').select('*').eq('user_id',userId).order('date',{ascending:false}),
       supabase.from('health_medications').select('*').eq('user_id',userId).order('active',{ascending:false}),
       supabase.from('cycle_entries').select('date,type,value').eq('user_id',userId).gte('date',d90).order('date'),
       supabase.from('vitta_fiv_stages').select('stage_key,stage_label,status,start_date').eq('user_id',userId),
@@ -45,6 +45,15 @@ function useOverviewData(userId) {
       supabase.from('daily_tracking').select('sleep_hours,water_ml,date').eq('user_id',userId).gte('date',d7),
       supabase.from('lab_results').select('id,category,date,status,scheduled_date').eq('user_id',userId).order('date',{ascending:false}),
     ])
+           const [
+  {data:consultas},{data:allConsultas},{data:meds},{data:cycles},
+  {data:fivStages},{data:weights},{data:tracking},{data:labResults},
+  {data:historico},                                         // ← novo
+] = await Promise.all([
+  // ...queries existentes...
+  supabase.from('lab_results').select('id,category,date,status,scheduled_date').eq('user_id',userId).order('date',{ascending:false}),
+  supabase.from('vitta_historico').select('date').eq('user_id',userId),  // ← novo
+])
     const activeMeds = (meds||[]).filter(m=>m.active)
     const continuosMeds = (meds||[]).filter(m=>m.active&&m.tipo!=='eventual')
     const eventualMeds = (meds||[]).filter(m=>m.active&&m.tipo==='eventual')
@@ -55,6 +64,8 @@ function useOverviewData(userId) {
     const withWater  = weekT.filter(d=>d.water_ml>0)
     const cycle      = predictCycleSimple(cycles)
     const nextExam   = (labResults||[]).find(e=>e.status==='agendado'||e.status==='pendente')
+    const histList = historico || []
+const historicoYears = histList.length ? new Set(histList.map(h => h.date.slice(0,4))).size : 0       
     setData({
       nextConsulta: consultas,
       allConsultas: allConsultas||[],
@@ -66,6 +77,7 @@ function useOverviewData(userId) {
       avgSleep: withSleep.length ? (withSleep.reduce((s,d)=>s+(d.sleep_hours||0),0)/withSleep.length).toFixed(1) : null,
       avgWater: withWater.length ? Math.round(withWater.reduce((s,d)=>s+(d.water_ml||0),0)/withWater.length) : null,
       labResults: labResults||[], nextExam,
+      historicoCount: histList.length, historicoYears,
     })
     setLoading(false)
   }, [userId])
@@ -122,7 +134,7 @@ function ModuleCard({icon:Icon, title, stats, color, onOpen}) {
 function ConsultaModal({item, userId, onClose, onSave}) {
   const isNew = !item?.id
   const [f,setF] = useState({
-    date: item?.date||today(), time:'', specialty:item?.specialty||'',
+    date: item?.date||today(), time: item?.time || '', specialty:item?.specialty||'',
     doctor:item?.doctor||'', location:item?.location||'',
     diagnosis:item?.diagnosis||'', notes:item?.notes||'', next_return_date:item?.next_return_date||''
   })
@@ -789,7 +801,7 @@ export default function Saude({userId}) {
         <ModuleCard icon={FlaskConical} title="Exames" color="var(--c-sage)" onOpen={()=>setView('exames')}
           stats={[{value:d.labResults?.filter(e=>e.status==='agendado').length||0,label:'agendados'},{value:d.labResults?.filter(e=>e.status==='realizado'||!e.status).length||0,label:'realizados'}]}/>
         <ModuleCard icon={Activity} title="Histórico" color="var(--c-gold)" onOpen={()=>setView('historico')}
-          stats={[{value:'—',label:'eventos registrados'},{value:'—',label:'anos de história'}]}/>
+          stats={[{value:d.historicoCount||0,label:'eventos registrados'},{value:d.historicoYears||0,label:'anos de história'}]}
       </section>
 
       {/* Saúde Reprodutiva */}
