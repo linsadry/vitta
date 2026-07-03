@@ -207,7 +207,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
       .select('date, load, reps, set_number')
       .eq('user_id', userId)
       .eq('exercise_id', exercise.id)
-      .neq('load', null)
+      .not('load', 'is', null)
       .order('date', { ascending: false })
       .order('set_number', { ascending: true })
       .limit(10)
