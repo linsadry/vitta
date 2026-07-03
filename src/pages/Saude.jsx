@@ -34,7 +34,8 @@ function useOverviewData(userId) {
     const d7 = daysAgo(7), d90 = daysAgo(90)
     const [
       {data:consultas},{data:allConsultas},{data:meds},{data:cycles},
-      {data:fivStages},{data:weights},{data:tracking},{data:labResults}
+      {data:fivStages},{data:weights},{data:tracking},{data:labResults},
+      {data:historico},
     ] = await Promise.all([
       supabase.from('health_consultations').select('date,specialty,doctor,time').eq('user_id',userId).gte('date',todayStr).order('date').limit(1).maybeSingle(),
       supabase.from('health_consultations').select('*').eq('user_id',userId).order('date',{ascending:false}),
@@ -44,16 +45,8 @@ function useOverviewData(userId) {
       supabase.from('physical_metrics').select('weight,date').eq('user_id',userId).order('date',{ascending:false}).limit(2),
       supabase.from('daily_tracking').select('sleep_hours,water_ml,date').eq('user_id',userId).gte('date',d7),
       supabase.from('lab_results').select('id,category,date,status,scheduled_date').eq('user_id',userId).order('date',{ascending:false}),
+      supabase.from('vitta_historico').select('date').eq('user_id',userId),
     ])
-           const [
-  {data:consultas},{data:allConsultas},{data:meds},{data:cycles},
-  {data:fivStages},{data:weights},{data:tracking},{data:labResults},
-  {data:historico},                                         // ← novo
-] = await Promise.all([
-  // ...queries existentes...
-  supabase.from('lab_results').select('id,category,date,status,scheduled_date').eq('user_id',userId).order('date',{ascending:false}),
-  supabase.from('vitta_historico').select('date').eq('user_id',userId),  // ← novo
-])
     const activeMeds = (meds||[]).filter(m=>m.active)
     const continuosMeds = (meds||[]).filter(m=>m.active&&m.tipo!=='eventual')
     const eventualMeds = (meds||[]).filter(m=>m.active&&m.tipo==='eventual')
@@ -65,7 +58,7 @@ function useOverviewData(userId) {
     const cycle      = predictCycleSimple(cycles)
     const nextExam   = (labResults||[]).find(e=>e.status==='agendado'||e.status==='pendente')
     const histList = historico || []
-const historicoYears = histList.length ? new Set(histList.map(h => h.date.slice(0,4))).size : 0       
+    const historicoYears = histList.length ? new Set(histList.map(h => h.date.slice(0,4))).size : 0
     setData({
       nextConsulta: consultas,
       allConsultas: allConsultas||[],
@@ -80,6 +73,7 @@ const historicoYears = histList.length ? new Set(histList.map(h => h.date.slice(
       historicoCount: histList.length, historicoYears,
     })
     setLoading(false)
+  }, [userId])
   }, [userId])
   useEffect(()=>{load()},[load])
   return {data, loading, reload:load}
@@ -801,7 +795,7 @@ export default function Saude({userId}) {
         <ModuleCard icon={FlaskConical} title="Exames" color="var(--c-sage)" onOpen={()=>setView('exames')}
           stats={[{value:d.labResults?.filter(e=>e.status==='agendado').length||0,label:'agendados'},{value:d.labResults?.filter(e=>e.status==='realizado'||!e.status).length||0,label:'realizados'}]}/>
         <ModuleCard icon={Activity} title="Histórico" color="var(--c-gold)" onOpen={()=>setView('historico')}
-          stats={[{value:d.historicoCount||0,label:'eventos registrados'},{value:d.historicoYears||0,label:'anos de história'}]}
+          stats={[{value:d.historicoCount||0,label:'eventos registrados'},{value:d.historicoYears||0,label:'anos de história'}]}/>
       </section>
 
       {/* Saúde Reprodutiva */}
