@@ -108,7 +108,7 @@ function useHomeData(userId) {
       nextConsult, nextExam,
       fivList, activeFiv, doneCount,
       todayDiaryId:todayDiary?.id,
-      todayMood:todayDiary?.mood?parseInt(todayDiary.mood):null,
+      todayMood:todayTracking?.mood!=null?parseInt(todayTracking.mood):(todayDiary?.mood?parseInt(todayDiary.mood):null),
       todayPeso:weights?.[0]?.date===todayStr,
       todayAgua:(todayTracking?.water_ml||0)>0,
       todaySono:(todayTracking?.sleep_hours||0)>0,
@@ -461,7 +461,7 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
     const mv = String(moodSel)
     const { data:de } = await supabase.from('diary_entries').select('id').eq('user_id',userId).eq('date',date).maybeSingle()
     if (de) await supabase.from('diary_entries').update({ mood:mv }).eq('id',de.id)
-    else     await supabase.from('diary_entries').insert({ user_id:userId, date, mood:mv })
+    else     await supabase.from('diary_entries').insert({ user_id:userId, date, mood:mv, content:'' })
     const { data:dt } = await supabase.from('daily_tracking').select('id').eq('user_id',userId).eq('date',date).maybeSingle()
     if (dt) await supabase.from('daily_tracking').update({ mood:mv }).eq('id',dt.id)
     else     await supabase.from('daily_tracking').insert({ user_id:userId, date, mood:mv })
@@ -815,9 +815,9 @@ export default function Home({ userId }) {
   if (de) {
     await supabase.from('diary_entries').update({ mood: moodVal }).eq('id', de.id)
     setMoodDiaryId(de.id)
-  } else if (newLevel) {
+ } else if (newLevel) {
     const { data: nd } = await supabase.from('diary_entries')
-      .insert({ user_id: userId, date: todayStr, mood: moodVal })
+      .insert({ user_id: userId, date: todayStr, mood: moodVal, content: '' })
       .select('id').maybeSingle()
     if (nd?.id) setMoodDiaryId(nd.id)
   }
