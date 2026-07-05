@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Scale, Droplets, Moon, Dumbbell, UtensilsCrossed, BookOpen,
   FlaskConical, CalendarDays, X, Check, ChevronRight, ChevronLeft, Heart, Activity, Settings
@@ -892,10 +892,17 @@ export default function Home({ userId }) {
     else if(id==='humor')     document.getElementById('mood-picker')?.scrollIntoView({behavior:'smooth'})
   else if(id==='skincare')   setModal('skincare')
   }
-
+  
+const location = useLocation()
+useEffect(() => {
+  const wanted = location.state?.openModal
+  if (!wanted || !data) return
+  handleAction(wanted)
+  window.history.replaceState({}, document.title)
+}, [location.state, data])
+  
   const today_=today()
   const upcomingEvents = data?.upConsults?.map(c=>({date:c.date,type:'consultation',title:c.specialty||'Consulta',subtitle:c.doctor||c.location})) || []
-
   return (
     <div style={{paddingBottom:8}}>
 
