@@ -65,7 +65,6 @@ function AppShell() {
         </Routes>
       </main>
       <BottomNav />
-      <FloatingButton onClick={() => {}} />
     </div>
   )
 }
