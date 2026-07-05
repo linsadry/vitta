@@ -203,15 +203,25 @@ function RegModal({ type, userId, onClose, onSave }) {
     setSaving(true)
     const toNum = (v) => v ? parseFloat(String(v).replace(',', '.')) || null : null
 
+    const { data: existing } = await supabase.from('physical_metrics')
+      .select('id').eq('user_id', userId).eq('date', date).maybeSingle()
+
     if (type === 'peso') {
       const w = toNum(vals.weight)
       if (!w) { setSaving(false); return }
-      await supabase.from('physical_metrics').insert({ user_id: userId, date: date, weight: w })
+      if (existing) await supabase.from('physical_metrics').update({ weight: w }).eq('id', existing.id)
+      else           await supabase.from('physical_metrics').insert({ user_id: userId, date, weight: w })
     } else if (type === 'medidas') {
-      const row = { user_id: userId, date: date }
-      const fields = { waist_cm: vals.waist, abdomen_cm: vals.abdomen, hip_cm: vals.hip, arm_right_cm: vals.arm, thigh_right_cm: vals.thigh }
+      const row = {}
+      const fields = {
+        waist_cm: vals.waist, abdomen_cm: vals.abdomen, hip_cm: vals.hip, chest_cm: vals.chest,
+        arm_right_cm: vals.arm, arm_left_cm: vals.armLeft,
+        thigh_right_cm: vals.thigh, thigh_left_cm: vals.thighLeft,
+        calf_right_cm: vals.calfRight, calf_left_cm: vals.calfLeft,
+      }
       Object.entries(fields).forEach(([k, v]) => { const n = toNum(v); if (n) row[k] = n })
-      await supabase.from('physical_metrics').insert(row)
+      if (existing) await supabase.from('physical_metrics').update(row).eq('id', existing.id)
+      else           await supabase.from('physical_metrics').insert({ user_id: userId, date, ...row })
     }
 
     setDone(true)
@@ -221,11 +231,16 @@ function RegModal({ type, userId, onClose, onSave }) {
   const fields = type === 'peso'
     ? [{ key: 'weight', label: 'Peso (kg)', placeholder: '0,0' }]
     : [
-        { key: 'waist',   label: 'Cintura (cm)',  placeholder: '0,0' },
-        { key: 'abdomen', label: 'Abdômen (cm)',  placeholder: '0,0' },
-        { key: 'hip',     label: 'Quadril (cm)',  placeholder: '0,0' },
-        { key: 'arm',     label: 'Braço D (cm)',  placeholder: '0,0' },
-        { key: 'thigh',   label: 'Coxa D (cm)',   placeholder: '0,0' },
+        { key: 'chest',     label: 'Busto (cm)',        placeholder: '0,0' },
+        { key: 'waist',     label: 'Cintura (cm)',      placeholder: '0,0' },
+        { key: 'abdomen',   label: 'Abdômen (cm)',      placeholder: '0,0' },
+        { key: 'hip',       label: 'Quadril (cm)',      placeholder: '0,0' },
+        { key: 'arm',       label: 'Braço D (cm)',      placeholder: '0,0' },
+        { key: 'armLeft',   label: 'Braço E (cm)',      placeholder: '0,0' },
+        { key: 'thigh',     label: 'Coxa D (cm)',       placeholder: '0,0' },
+        { key: 'thighLeft', label: 'Coxa E (cm)',       placeholder: '0,0' },
+        { key: 'calfRight', label: 'Panturrilha D (cm)',placeholder: '0,0' },
+        { key: 'calfLeft',  label: 'Panturrilha E (cm)',placeholder: '0,0' },
       ]
 
   return (
@@ -458,11 +473,16 @@ export default function Evolucao({ userId }) {
               </span>}
             </div>
             <div className="card" style={{ padding: '4px 16px 4px' }}>
-              <MeasureRow label="Cintura"  value={l?.waist_cm}      unit="cm" prev={p?.waist_cm} />
-              <MeasureRow label="Abdômen"  value={l?.abdomen_cm}    unit="cm" prev={p?.abdomen_cm} />
-              <MeasureRow label="Quadril"  value={l?.hip_cm}        unit="cm" prev={p?.hip_cm} />
-              <MeasureRow label="Braço D"  value={l?.arm_right_cm}  unit="cm" prev={p?.arm_right_cm} />
-              <MeasureRow label="Coxa D"   value={l?.thigh_right_cm} unit="cm" prev={p?.thigh_right_cm} />
+              <MeasureRow label="Busto"         value={l?.chest_cm}       unit="cm" prev={p?.chest_cm} />
+              <MeasureRow label="Cintura"       value={l?.waist_cm}       unit="cm" prev={p?.waist_cm} />
+              <MeasureRow label="Abdômen"       value={l?.abdomen_cm}     unit="cm" prev={p?.abdomen_cm} />
+              <MeasureRow label="Quadril"       value={l?.hip_cm}         unit="cm" prev={p?.hip_cm} />
+              <MeasureRow label="Braço D"       value={l?.arm_right_cm}   unit="cm" prev={p?.arm_right_cm} />
+              <MeasureRow label="Braço E"       value={l?.arm_left_cm}    unit="cm" prev={p?.arm_left_cm} />
+              <MeasureRow label="Coxa D"        value={l?.thigh_right_cm} unit="cm" prev={p?.thigh_right_cm} />
+              <MeasureRow label="Coxa E"        value={l?.thigh_left_cm}  unit="cm" prev={p?.thigh_left_cm} />
+              <MeasureRow label="Panturrilha D" value={l?.calf_right_cm}  unit="cm" prev={p?.calf_right_cm} />
+              <MeasureRow label="Panturrilha E" value={l?.calf_left_cm}   unit="cm" prev={p?.calf_left_cm} />
             </div>
           </section>
 
@@ -477,26 +497,11 @@ export default function Evolucao({ userId }) {
             </button>
           </div>
           
-          {/* Action buttons */}
-          <div style={{ padding: '0 var(--page-pad-x)', display: 'flex', gap: 10, marginBottom: 32 }}>
-            <button className="btn-primary" style={{ flex: 1 }} onClick={() => setModal('peso')}>
-              + Registrar peso
-            </button>
-            <button className="btn-primary" style={{ flex: 1, background: 'var(--c-base-2)', color: 'var(--c-text-700)' }}
-              onClick={() => setModal('medidas')}>
-              + Medidas
-            </button>
-          </div>
 
           {/* ── Fotos de progresso ── */}
           <div style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
             <ProgressPhotos userId={userId} />
           </div>
-
-          {/* Evolução de indicadores */}
-          {data?.labResults?.length > 0 && (
-            <IndicadoresSection labResults={data.labResults} />
-          )}
 
           {/* Evolução de indicadores */}
           {data?.labResults?.length > 0 && (
