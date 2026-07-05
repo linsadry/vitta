@@ -1,4 +1,5 @@
 import ProgressPhotos from '../components/ProgressPhotos'
+import { useLocation } from 'react-router-dom'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Scale, Ruler, Moon, Droplets, TrendingUp, TrendingDown, Minus, Plus, X, Check, FlaskConical, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -373,25 +374,119 @@ function IndicadoresSection({ labResults }) {
   )
 }
 
+/* ─── MEASURES EVOLUTION CHART ──────────────────────────────────── */
+function MeasuresChart({ data, field, color }) {
+  const points = (data || []).filter(d => d[field] != null).map(d => ({ date: d.date, value: parseFloat(d[field]) }))
+  if (points.length < 2) {
+    return (
+      <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)', fontStyle: 'italic' }}>
+          {points.length === 0 ? 'Sem registros ainda' : 'Só 1 registro ainda'}
+        </span>
+      </div>
+    )
+  }
+  const W = 320, H = 110, PAD = { t: 10, r: 14, b: 20, l: 34 }
+  const plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b
+  const vals = points.map(p => p.value)
+  const rawMin = Math.min(...vals), rawMax = Math.max(...vals)
+  const range = Math.max(rawMax - rawMin, 1)
+  const minV = rawMin - range * 0.15, maxV = rawMax + range * 0.15
+  const xS = (i) => PAD.l + (i / Math.max(points.length - 1, 1)) * plotW
+  const yS = (v) => PAD.t + plotH - ((v - minV) / (maxV - minV)) * plotH
+  const pts = points.map((p, i) => ({ x: xS(i), y: yS(p.value), ...p }))
+  const smooth = (ps) => {
+    let d = `M ${ps[0].x} ${ps[0].y}`
+    for (let i = 1; i < ps.length; i++) {
+      const p = ps[i - 1], c = ps[i]
+      d += ` C ${p.x + (c.x - p.x) / 3} ${p.y} ${c.x - (c.x - p.x) / 3} ${c.y} ${c.x} ${c.y}`
+    }
+    return d
+  }
+  const line = smooth(pts)
+  const last = pts[pts.length - 1]
+  const delta = (points[points.length - 1].value - points[0].value).toFixed(1)
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+        <path d={line} stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
+        {points.length <= 12 && pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="white" stroke={color} strokeWidth="1.2" />
+        ))}
+        <circle cx={last.x} cy={last.y} r="3.5" fill="white" stroke={color} strokeWidth="1.6" />
+        <text x={PAD.l} y={H - 4} fontSize="9" fill="var(--c-text-300)" fontFamily="Inter, sans-serif">{formatDateShort(points[0].date)}</text>
+        <text x={last.x} y={H - 4} textAnchor="end" fontSize="9" fill="var(--c-text-300)" fontFamily="Inter, sans-serif">{formatDateShort(points[points.length - 1].date)}</text>
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--c-text-300)' }}>{points.length} registros</span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 500, color: parseFloat(delta) < 0 ? 'var(--c-sage)' : parseFloat(delta) > 0 ? 'var(--c-rose-mid)' : 'var(--c-text-300)' }}>
+          {parseFloat(delta) > 0 ? '+' : ''}{delta} cm desde o início
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const MEASURE_FIELDS = [
+  { key: 'waist_cm', label: 'Cintura' },
+  { key: 'abdomen_cm', label: 'Abdômen' },
+  { key: 'hip_cm', label: 'Quadril' },
+  { key: 'chest_cm', label: 'Busto' },
+  { key: 'arm_right_cm', label: 'Braço D' },
+  { key: 'arm_left_cm', label: 'Braço E' },
+  { key: 'thigh_right_cm', label: 'Coxa D' },
+  { key: 'thigh_left_cm', label: 'Coxa E' },
+  { key: 'calf_right_cm', label: 'Pant. D' },
+  { key: 'calf_left_cm', label: 'Pant. E' },
+]
+
+function MeasuresEvolutionSection({ physList }) {
+  const available = MEASURE_FIELDS.filter(f => (physList || []).filter(r => r[f.key] != null).length >= 2)
+  const [sel, setSel] = useState(available[0]?.key)
+  if (!available.length) return null
+  const activeSel = available.some(f => f.key === sel) ? sel : available[0].key
+
+  return (
+    <section style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
+      <h2 className="section-title" style={{ marginBottom: 12 }}>Evolução das medidas</h2>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {available.map(f => (
+          <button key={f.key} onClick={() => setSel(f.key)} style={{
+            padding: '6px 12px', borderRadius: 'var(--r-full)', cursor: 'pointer',
+            border: `1.5px solid ${activeSel === f.key ? 'var(--c-sage)' : 'var(--c-border)'}`,
+            background: activeSel === f.key ? 'var(--c-sage-faint)' : 'none',
+            color: activeSel === f.key ? 'var(--c-sage)' : 'var(--c-text-500)',
+            fontFamily: 'var(--font-ui)', fontSize: 12,
+          }}>{f.label}</button>
+        ))}
+      </div>
+      <div className="card" style={{ padding: '14px 16px 10px' }}>
+        <MeasuresChart data={physList} field={activeSel} color="#8A9E8C" />
+      </div>
+    </section>
+  )
+}
+
+/* ─── MAIN PAGE ──────────────────────────────────────────────────── */
 
 /* ─── MAIN PAGE ──────────────────────────────────────────────────── */
 export default function Evolucao({ userId }) {
   const [tab, setTab]       = useState('corpo')
   const [modal, setModal]   = useState(null)
   const [showHistory, setShowHistory] = useState(false)
-const [editEntry, setEditEntry] = useState(null)
+  const [editEntry, setEditEntry] = useState(null)
   const [loading, setLoading] = useState(true)
   const [data, setData]     = useState(null)
-  import { useLocation } from 'react-router-dom'
-...
-const location = useLocation()
-useEffect(() => {
-  const wanted = location.state?.openModal
-  if (wanted === 'peso' || wanted === 'medidas') {
-    setModal(wanted)
-    window.history.replaceState({}, document.title)
-  }
-}, [location.state])
+
+  const location = useLocation()
+  useEffect(() => {
+    const wanted = location.state?.openModal
+    if (wanted === 'peso' || wanted === 'medidas') {
+      setModal(wanted)
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
 
   const load = useCallback(async () => {
     if (!userId) return
@@ -484,93 +579,6 @@ useEffect(() => {
               <WeightChart data={data?.weightHistory} goalKg={data?.goalKg} />
             </div>
           </section>
-
-          /* ─── MEASURES EVOLUTION CHART ──────────────────────────────────── */
-function MeasuresChart({ data, field, color }) {
-  const points = (data || []).filter(d => d[field] != null).map(d => ({ date: d.date, value: parseFloat(d[field]) }))
-  if (points.length < 2) {
-    return (
-      <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)', fontStyle: 'italic' }}>
-          {points.length === 0 ? 'Sem registros ainda' : 'Só 1 registro ainda'}
-        </span>
-      </div>
-    )
-  }
-  const W = 320, H = 110, PAD = { t: 10, r: 14, b: 20, l: 34 }
-  const plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b
-  const vals = points.map(p => p.value)
-  const rawMin = Math.min(...vals), rawMax = Math.max(...vals)
-  const range = Math.max(rawMax - rawMin, 1)
-  const minV = rawMin - range * 0.15, maxV = rawMax + range * 0.15
-  const xS = (i) => PAD.l + (i / Math.max(points.length - 1, 1)) * plotW
-  const yS = (v) => PAD.t + plotH - ((v - minV) / (maxV - minV)) * plotH
-  const pts = points.map((p, i) => ({ x: xS(i), y: yS(p.value), ...p }))
-  const smooth = (ps) => {
-    let d = `M ${ps[0].x} ${ps[0].y}`
-    for (let i = 1; i < ps.length; i++) {
-      const p = ps[i - 1], c = ps[i]
-      d += ` C ${p.x + (c.x - p.x) / 3} ${p.y} ${c.x - (c.x - p.x) / 3} ${c.y} ${c.x} ${c.y}`
-    }
-    return d
-  }
-  const line = smooth(pts)
-  const last = pts[pts.length - 1]
-  const delta = (points[points.length - 1].value - points[0].value).toFixed(1)
-
-  return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
-        <path d={line} stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
-        {points.length <= 12 && pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="white" stroke={color} strokeWidth="1.2" />
-        ))}
-        <circle cx={last.x} cy={last.y} r="3.5" fill="white" stroke={color} strokeWidth="1.6" />
-        <text x={PAD.l} y={H - 4} fontSize="9" fill="var(--c-text-300)" fontFamily="Inter, sans-serif">{formatDateShort(points[0].date)}</text>
-        <text x={last.x} y={H - 4} textAnchor="end" fontSize="9" fill="var(--c-text-300)" fontFamily="Inter, sans-serif">{formatDateShort(points[points.length - 1].date)}</text>
-      </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--c-text-300)' }}>{points.length} registros</span>
-        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 500, color: parseFloat(delta) < 0 ? 'var(--c-sage)' : parseFloat(delta) > 0 ? 'var(--c-rose-mid)' : 'var(--c-text-300)' }}>
-          {parseFloat(delta) > 0 ? '+' : ''}{delta} cm desde o início
-        </span>
-      </div>
-    </div>
-  )
-}
-
-const MEASURE_FIELDS = [
-  { key: 'waist_cm', label: 'Cintura' },
-  { key: 'abdomen_cm', label: 'Abdômen' },
-  { key: 'hip_cm', label: 'Quadril' },
-  { key: 'chest_cm', label: 'Busto' },
-  { key: 'arm_right_cm', label: 'Braço D' },
-  { key: 'arm_left_cm', label: 'Braço E' },
-  { key: 'thigh_right_cm', label: 'Coxa D' },
-  { key: 'thigh_left_cm', label: 'Coxa E' },
-  { key: 'calf_right_cm', label: 'Pant. D' },
-  { key: 'calf_left_cm', label: 'Pant. E' },
-]
-
-function MeasuresEvolutionSection({ physList }) {
-  const available = MEASURE_FIELDS.filter(f => (physList || []).filter(r => r[f.key] != null).length >= 2)
-  const [sel, setSel] = useState(available[0]?.key)
-  if (!available.length) return null
-  const activeSel = available.some(f => f.key === sel) ? sel : available[0].key
-
-  return (
-    <section style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
-      <h2 className="section-title" style={{ marginBottom: 12 }}>Evolução das medidas</h2>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-        {available.map(f => (
-          <button key={f.key} onClick={() => setSel(f.key)} style={{
-            padding: '6px 12px', borderRadius: 'var(--r-full)', cursor: 'pointer',
-            border: `1.5px solid ${activeSel === f.key ? 'var(--c-sage)' : 'var(--c-border)'}`,
-            background: activeSel === f.key ? 'var(--c-sage-faint)' : 'none',
-            color: activeSel === f.key ? 'var(--c-sage)' : 'var(--c-text-500)',
-            fontFamily: 'var(--font-ui)', fontSize: 12,
-          }}>{f.label}</button>
-        ))}
       </div>
       <div className="card" style={{ padding: '14px 16px 10px' }}>
         <MeasuresChart data={physList} field={activeSel} color="#8A9E8C" />
