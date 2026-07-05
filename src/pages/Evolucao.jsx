@@ -382,6 +382,16 @@ export default function Evolucao({ userId }) {
 const [editEntry, setEditEntry] = useState(null)
   const [loading, setLoading] = useState(true)
   const [data, setData]     = useState(null)
+  import { useLocation } from 'react-router-dom'
+...
+const location = useLocation()
+useEffect(() => {
+  const wanted = location.state?.openModal
+  if (wanted === 'peso' || wanted === 'medidas') {
+    setModal(wanted)
+    window.history.replaceState({}, document.title)
+  }
+}, [location.state])
 
   const load = useCallback(async () => {
     if (!userId) return
