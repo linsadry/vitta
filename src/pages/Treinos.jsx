@@ -310,7 +310,15 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
                   <input className="input-field" type="text" inputMode="numeric" placeholder="0"
                     value={s.reps} onChange={e => updateSet(i, 'reps', e.target.value)}
                     style={{ textAlign: 'center', fontSize: 20, fontFamily: 'var(--font-display)', padding: '10px 8px' }} />
-                  <button onClick={() => removeSet(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-200)', fontSize: 18, lineHeight: 1 }}>×</button>
+                  <button onClick={() => setShowFAB(true)} style={{
+  position: 'fixed', bottom: 88, right: 20, zIndex: 40,
+  width: 52, height: 52, borderRadius: '50%',
+  background: 'var(--c-sage)', border: 'none', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: '0 4px 16px rgba(138,158,140,0.35)',
+}}>
+  <Zap size={20} strokeWidth={2} style={{ color: 'white' }} />
+</button>
                 </div>
               ))}
             </div>
