@@ -1,5 +1,6 @@
 // src/pages/Treinos.jsx
 import React, { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Plus, X, Check, Dumbbell, Zap, ChevronLeft, Trash2, Edit2, Clock, BarChart2, ChevronDown } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
@@ -52,15 +53,6 @@ function FABMenu({ userId, programs, activeProg, plans, onClose, onSaved }) {
   const [customType, setCustomType] = useState('')
   const [saving, setSaving]     = useState(false)
   const [done, setDone]         = useState(false)
-  import { useLocation } from 'react-router-dom'
-...
-const location = useLocation()
-useEffect(() => {
-  if (location.state?.openModal === 'treino') {
-    setShowFAB(true)
-    window.history.replaceState({}, document.title)
-  }
-}, [location.state])
 
   useEffect(() => {
     if (selProg && selProg !== activeProg) {
@@ -319,15 +311,7 @@ function LogModal({ exercise, planId, planName, userId, onClose, onSave }) {
                   <input className="input-field" type="text" inputMode="numeric" placeholder="0"
                     value={s.reps} onChange={e => updateSet(i, 'reps', e.target.value)}
                     style={{ textAlign: 'center', fontSize: 20, fontFamily: 'var(--font-display)', padding: '10px 8px' }} />
-                  <button onClick={() => setShowFAB(true)} style={{
-  position: 'fixed', bottom: 88, right: 20, zIndex: 40,
-  width: 52, height: 52, borderRadius: '50%',
-  background: 'var(--c-sage)', border: 'none', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  boxShadow: '0 4px 16px rgba(138,158,140,0.35)',
-}}>
-  <Zap size={20} strokeWidth={2} style={{ color: 'white' }} />
-</button>
+                  <button onClick={() => removeSet(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-200)', fontSize: 18, lineHeight: 1 }}>×</button>
                 </div>
               ))}
             </div>
@@ -1219,6 +1203,14 @@ export default function Treinos({ userId }) {
 
   const refresh = () => setRefreshKey(k => k + 1)
 
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.openModal === 'treino') {
+      setShowFAB(true)
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
+
   useEffect(() => {
     if (!userId) return
     setLoading(true)
@@ -1480,11 +1472,11 @@ export default function Treinos({ userId }) {
       <button onClick={() => setShowFAB(true)} style={{
         position: 'fixed', bottom: 88, right: 20, zIndex: 40,
         width: 52, height: 52, borderRadius: '50%',
-        background: 'var(--c-text-900)', border: 'none', cursor: 'pointer',
+        background: 'var(--c-sage)', border: 'none', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+        boxShadow: '0 4px 16px rgba(138,158,140,0.35)',
       }}>
-        <Zap size={20} strokeWidth={2} style={{ color: 'var(--c-base-0)' }} />
+        <Zap size={20} strokeWidth={2} style={{ color: 'white' }} />
       </button>
 
       {/* Modals */}
