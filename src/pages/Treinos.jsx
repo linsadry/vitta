@@ -52,6 +52,15 @@ function FABMenu({ userId, programs, activeProg, plans, onClose, onSaved }) {
   const [customType, setCustomType] = useState('')
   const [saving, setSaving]     = useState(false)
   const [done, setDone]         = useState(false)
+  import { useLocation } from 'react-router-dom'
+...
+const location = useLocation()
+useEffect(() => {
+  if (location.state?.openModal === 'treino') {
+    setShowFAB(true)
+    window.history.replaceState({}, document.title)
+  }
+}, [location.state])
 
   useEffect(() => {
     if (selProg && selProg !== activeProg) {
