@@ -406,6 +406,8 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
   const [trainDur, setTrainDur]   = useState('')
   const [saving, setSaving]       = useState(false)
   const [rk, setRk]               = useState(0)
+  const [skincareAm, setSkincareAm] = useState(false)
+const [skincarePm, setSkincarePm] = useState(false)
 
   const MOOD_L    = { 1:'Muito bem', 2:'Bem', 3:'Neutra', 4:'Cansada', 5:'Difícil' }
   const TRAIN_T   = ['Força','Aeróbico','Yoga','Pilates','Caminhada','Outro']
@@ -432,8 +434,9 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
   }, [date, userId, rk])
 
   const startAdding = (type) => {
-    setAdding(type); setAddVal(''); setMoodSel(null); setTrainType('Aeróbico'); setTrainDur('')
-  }
+  setAdding(type); setAddVal(''); setMoodSel(null); setTrainType('Aeróbico'); setTrainDur('')
+  setSkincareAm(!!dayData?.dt?.skincare_am); setSkincarePm(!!dayData?.dt?.skincare_pm)
+}
 
   const afterSave = () => {
     setAdding(null); setSaving(false); setRk(k=>k+1); onReload?.()
@@ -478,6 +481,15 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
     afterSave()
   }
 
+  const saveSkincare = async () => {
+  if (saving) return
+  setSaving(true)
+  const { data:ex } = await supabase.from('daily_tracking').select('id').eq('user_id',userId).eq('date',date).maybeSingle()
+  if (ex) await supabase.from('daily_tracking').update({ skincare_am:skincareAm, skincare_pm:skincarePm }).eq('id',ex.id)
+  else     await supabase.from('daily_tracking').insert({ user_id:userId, date, skincare_am:skincareAm, skincare_pm:skincarePm })
+  afterSave()
+}
+
   const dt = dayData?.dt
   const hasAny = dayData && (dt || dayData.diary || dayData.wkLogs?.length || dayData.meals?.length || dayData.weight)
 
@@ -513,13 +525,14 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
               </div>
             )}
 
-            {dt && (dt.water_ml || dt.sleep_hours || dt.mood) && (
+            {dt && (dt.water_ml || dt.sleep_hours || dt.mood || dt.skincare_am || dt.skincare_pm) && (
               <div className="card-inset" style={{padding:'12px 14px'}}>
                 <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Hábitos</span>
                 <div style={{display:'flex',gap:16,marginTop:6,flexWrap:'wrap'}}>
                   {dt.water_ml>0 && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Água {fmtWater(dt.water_ml)}</span>}
                   {dt.sleep_hours>0 && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Sono {fmtSleep(dt.sleep_hours)}</span>}
                   {dt.mood && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Humor: {MOOD_L[parseInt(dt.mood)]||dt.mood}</span>}
+                {(dt.skincare_am||dt.skincare_pm) && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Skincare: {dt.skincare_am&&dt.skincare_pm?'Manhã e noite':dt.skincare_am?'Manhã':'Noite'}</span>}
                 </div>
               </div>
             )}
@@ -632,6 +645,33 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
               </div>
             )}
 
+            {adding === 'skincare' && (
+  <>
+    <p style={{fontSize:11,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:14}}>Skincare</p>
+    <div style={{display:'flex',gap:12,marginBottom:20}}>
+      {[{key:'am',label:'Manhã',val:skincareAm,set:setSkincareAm},{key:'pm',label:'Noite',val:skincarePm,set:setSkincarePm}].map(({key,label,val,set})=>(
+        <button key={key} onClick={()=>set(v=>!v)} style={{
+          flex:1,padding:'16px 0',borderRadius:'var(--r-lg)',border:'none',cursor:'pointer',
+          background:val?'rgba(138,158,140,0.18)':'var(--c-base-1)',
+          boxShadow:val?'0 0 0 1.5px var(--c-sage)':'none',
+          display:'flex',flexDirection:'column',alignItems:'center',gap:8,
+        }}>
+          <div style={{width:32,height:32,borderRadius:'50%',background:val?'var(--c-sage)':'var(--c-base-2)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {val&&<Check size={16} strokeWidth={2.5} style={{color:'white'}}/>}
+          </div>
+          <span style={{fontFamily:'var(--font-ui)',fontSize:12,fontWeight:val?500:400,color:val?'var(--c-sage-deep)':'var(--c-text-500)'}}>{label}</span>
+        </button>
+      ))}
+    </div>
+    <div style={{display:'flex',gap:10}}>
+      <button onClick={()=>setAdding(null)} style={btnCancel}>Cancelar</button>
+      <button onClick={saveSkincare} disabled={saving} className="btn-primary" style={{flex:2}}>
+        {saving?'Salvando...':'Salvar'}
+      </button>
+    </div>
+  </>
+)}
+            
             {/* ── Botões de adição ── */}
             {!adding && (
               <div style={{paddingTop:12,borderTop:'1px solid var(--c-border-light)'}}>
@@ -644,6 +684,7 @@ function DayDetailSheet({ date, userId, onClose, onReload }) {
                     {id:'agua',label:'+ Água'},
                     {id:'sono',label:'+ Sono'},
                     {id:'humor',label:'+ Humor'},
+                    {id:'skincare',label:'+ Skincare'},
                     {id:'treino',label:'+ Treino'},
                   ].map(({id,label})=>(
                     <button key={id} onClick={()=>startAdding(id)} style={{
