@@ -191,9 +191,16 @@ function HabitStrip({ label, icon: Icon, color, data, field, getValue, goal, uni
 }
 
 /* ─── REGISTER MODAL ─────────────────────────────────────────────── */
-function RegModal({ type, userId, onClose, onSave }) {
-  const [vals, setVals]     = useState({})
-  const [date, setDate]     = useState(today())
+function RegModal({ type, userId, onClose, onSave, editData }) {
+  const REVERSE_MAP = { waist_cm:'waist', abdomen_cm:'abdomen', hip_cm:'hip', chest_cm:'chest',
+    arm_right_cm:'arm', arm_left_cm:'armLeft', thigh_right_cm:'thigh', thigh_left_cm:'thighLeft',
+    calf_right_cm:'calfRight', calf_left_cm:'calfLeft' }
+  const prefillVals = {}
+  if (editData) {
+    Object.entries(REVERSE_MAP).forEach(([col, key]) => { if (editData[col] != null) prefillVals[key] = String(editData[col]) })
+  }
+  const [vals, setVals]     = useState(prefillVals)
+  const [date, setDate]     = useState(editData?.date || today())
   const [saving, setSaving] = useState(false)
   const [done, setDone]     = useState(false)
 
@@ -203,8 +210,10 @@ function RegModal({ type, userId, onClose, onSave }) {
     setSaving(true)
     const toNum = (v) => v ? parseFloat(String(v).replace(',', '.')) || null : null
 
-    const { data: existing } = await supabase.from('physical_metrics')
-      .select('id').eq('user_id', userId).eq('date', date).maybeSingle()
+    const { data: found } = editData
+      ? { data: { id: editData.id } }
+      : await supabase.from('physical_metrics').select('id').eq('user_id', userId).eq('date', date).maybeSingle()
+    const existing = found
 
     if (type === 'peso') {
       const w = toNum(vals.weight)
