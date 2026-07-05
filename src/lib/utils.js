@@ -22,13 +22,18 @@ export function randomSalt() {
 
 // ─── DATE HELPERS ────────────────────────────────────────────────
 
+function localISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  return localISO(new Date())
 }
 
 export function daysAgo(n) {
-  return new Date(Date.now() - n * 86400000).toISOString().split('T')[0]
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return localISO(d)
 }
 
 export function formatDate(dateStr, opts = {}) {
