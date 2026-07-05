@@ -71,7 +71,7 @@ function WeightChart({ data, goalKg }) {
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
       <defs>
         <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#D4A5A5" stopOpacity="0.18" />
+          <stop offset="0%" stopColor="#D4A5A5" stopOpacity="0.10" />
           <stop offset="100%" stopColor="#D4A5A5" stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -79,7 +79,7 @@ function WeightChart({ data, goalKg }) {
       {/* Grid lines */}
       {yLabels.map(({ y }, i) => (
         <line key={i} x1={PAD.l} x2={W - PAD.r} y1={y} y2={y}
-          stroke="rgba(62,50,44,0.06)" strokeWidth="1" />
+          stroke="rgba(62,50,44,0.04)" strokeWidth="0.75" />
       ))}
 
       {/* Goal line */}
@@ -92,8 +92,8 @@ function WeightChart({ data, goalKg }) {
       <path d={areaPath} fill="url(#wGrad)" />
 
       {/* Line */}
-      <path d={linePath} stroke="#D4A5A5" strokeWidth="2" fill="none"
-        strokeLinecap="round" strokeLinejoin="round" />
+      <path d={linePath} stroke="#D4A5A5" strokeWidth="1.5" fill="none"
+        strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
 
       {/* Dots at each point (only if few points) */}
       {data.length <= 12 && pts.map((p, i) => (
@@ -369,6 +369,8 @@ function IndicadoresSection({ labResults }) {
 export default function Evolucao({ userId }) {
   const [tab, setTab]       = useState('corpo')
   const [modal, setModal]   = useState(null)
+  const [showHistory, setShowHistory] = useState(false)
+const [editEntry, setEditEntry] = useState(null)
   const [loading, setLoading] = useState(true)
   const [data, setData]     = useState(null)
 
@@ -464,6 +466,100 @@ export default function Evolucao({ userId }) {
             </div>
           </section>
 
+          /* ─── MEASURES EVOLUTION CHART ──────────────────────────────────── */
+function MeasuresChart({ data, field, color }) {
+  const points = (data || []).filter(d => d[field] != null).map(d => ({ date: d.date, value: parseFloat(d[field]) }))
+  if (points.length < 2) {
+    return (
+      <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)', fontStyle: 'italic' }}>
+          {points.length === 0 ? 'Sem registros ainda' : 'Só 1 registro ainda'}
+        </span>
+      </div>
+    )
+  }
+  const W = 320, H = 110, PAD = { t: 10, r: 14, b: 20, l: 34 }
+  const plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b
+  const vals = points.map(p => p.value)
+  const rawMin = Math.min(...vals), rawMax = Math.max(...vals)
+  const range = Math.max(rawMax - rawMin, 1)
+  const minV = rawMin - range * 0.15, maxV = rawMax + range * 0.15
+  const xS = (i) => PAD.l + (i / Math.max(points.length - 1, 1)) * plotW
+  const yS = (v) => PAD.t + plotH - ((v - minV) / (maxV - minV)) * plotH
+  const pts = points.map((p, i) => ({ x: xS(i), y: yS(p.value), ...p }))
+  const smooth = (ps) => {
+    let d = `M ${ps[0].x} ${ps[0].y}`
+    for (let i = 1; i < ps.length; i++) {
+      const p = ps[i - 1], c = ps[i]
+      d += ` C ${p.x + (c.x - p.x) / 3} ${p.y} ${c.x - (c.x - p.x) / 3} ${c.y} ${c.x} ${c.y}`
+    }
+    return d
+  }
+  const line = smooth(pts)
+  const last = pts[pts.length - 1]
+  const delta = (points[points.length - 1].value - points[0].value).toFixed(1)
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+        <path d={line} stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
+        {points.length <= 12 && pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="white" stroke={color} strokeWidth="1.2" />
+        ))}
+        <circle cx={last.x} cy={last.y} r="3.5" fill="white" stroke={color} strokeWidth="1.6" />
+        <text x={PAD.l} y={H - 4} fontSize="9" fill="var(--c-text-300)" fontFamily="Inter, sans-serif">{formatDateShort(points[0].date)}</text>
+        <text x={last.x} y={H - 4} textAnchor="end" fontSize="9" fill="var(--c-text-300)" fontFamily="Inter, sans-serif">{formatDateShort(points[points.length - 1].date)}</text>
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--c-text-300)' }}>{points.length} registros</span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 500, color: parseFloat(delta) < 0 ? 'var(--c-sage)' : parseFloat(delta) > 0 ? 'var(--c-rose-mid)' : 'var(--c-text-300)' }}>
+          {parseFloat(delta) > 0 ? '+' : ''}{delta} cm desde o início
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const MEASURE_FIELDS = [
+  { key: 'waist_cm', label: 'Cintura' },
+  { key: 'abdomen_cm', label: 'Abdômen' },
+  { key: 'hip_cm', label: 'Quadril' },
+  { key: 'chest_cm', label: 'Busto' },
+  { key: 'arm_right_cm', label: 'Braço D' },
+  { key: 'arm_left_cm', label: 'Braço E' },
+  { key: 'thigh_right_cm', label: 'Coxa D' },
+  { key: 'thigh_left_cm', label: 'Coxa E' },
+  { key: 'calf_right_cm', label: 'Pant. D' },
+  { key: 'calf_left_cm', label: 'Pant. E' },
+]
+
+function MeasuresEvolutionSection({ physList }) {
+  const available = MEASURE_FIELDS.filter(f => (physList || []).filter(r => r[f.key] != null).length >= 2)
+  const [sel, setSel] = useState(available[0]?.key)
+  if (!available.length) return null
+  const activeSel = available.some(f => f.key === sel) ? sel : available[0].key
+
+  return (
+    <section style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
+      <h2 className="section-title" style={{ marginBottom: 12 }}>Evolução das medidas</h2>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {available.map(f => (
+          <button key={f.key} onClick={() => setSel(f.key)} style={{
+            padding: '6px 12px', borderRadius: 'var(--r-full)', cursor: 'pointer',
+            border: `1.5px solid ${activeSel === f.key ? 'var(--c-sage)' : 'var(--c-border)'}`,
+            background: activeSel === f.key ? 'var(--c-sage-faint)' : 'none',
+            color: activeSel === f.key ? 'var(--c-sage)' : 'var(--c-text-500)',
+            fontFamily: 'var(--font-ui)', fontSize: 12,
+          }}>{f.label}</button>
+        ))}
+      </div>
+      <div className="card" style={{ padding: '14px 16px 10px' }}>
+        <MeasuresChart data={physList} field={activeSel} color="#8A9E8C" />
+      </div>
+    </section>
+  )
+}
+
           {/* Measurements */}
           <section style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -484,7 +580,31 @@ export default function Evolucao({ userId }) {
               <MeasureRow label="Panturrilha D" value={l?.calf_right_cm}  unit="cm" prev={p?.calf_right_cm} />
               <MeasureRow label="Panturrilha E" value={l?.calf_left_cm}   unit="cm" prev={p?.calf_left_cm} />
             </div>
+            {(data?.physList?.length > 0) && (
+              <button onClick={() => setShowHistory(s => !s)} style={{
+                width: '100%', textAlign: 'center', padding: '10px 0', marginTop: 8,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-400)',
+              }}>{showHistory ? 'Ocultar histórico' : 'Ver / editar registros anteriores'}</button>
+            )}
+            {showHistory && (
+              <div className="card" style={{ padding: '4px 16px', marginTop: 4 }}>
+                {[...data.physList].reverse().map(row => (
+                  <div key={row.id} onClick={() => setEditEntry(row)} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 0', borderBottom: '1px solid var(--c-border-light)', cursor: 'pointer',
+                  }}>
+                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>{formatDate(row.date)}</span>
+                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)' }}>
+                      {[row.weight && `${row.weight}kg`, row.waist_cm && `Cint. ${row.waist_cm}`, row.chest_cm && `Busto ${row.chest_cm}`].filter(Boolean).join(' · ') || 'editar'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
+
+          <MeasuresEvolutionSection physList={data?.physList} />
 
           {/* Action buttons */}
           <div style={{ padding: '0 var(--page-pad-x)', display: 'flex', gap: 10, marginBottom: 32 }}>
@@ -496,6 +616,8 @@ export default function Evolucao({ userId }) {
               + Medidas
             </button>
           </div>
+
+          {/* ── Fotos de progresso ── */}
           
 
           {/* ── Fotos de progresso ── */}
@@ -535,6 +657,10 @@ export default function Evolucao({ userId }) {
 
       {modal && (
         <RegModal type={modal} userId={userId} onClose={() => setModal(null)} onSave={load} />
+      )}
+      {editEntry && (
+        <RegModal type="medidas" userId={userId} editData={editEntry}
+          onClose={() => setEditEntry(null)} onSave={() => { load(); setEditEntry(null) }} />
       )}
     </div>
   )
