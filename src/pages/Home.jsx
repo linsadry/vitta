@@ -433,6 +433,16 @@ const [skincarePm, setSkincarePm] = useState(false)
     load()
   }, [date, userId, rk])
 
+  useEffect(() => {
+  const onVisible = () => { if (document.visibilityState === 'visible') reload() }
+  document.addEventListener('visibilitychange', onVisible)
+  window.addEventListener('focus', onVisible)
+  return () => {
+    document.removeEventListener('visibilitychange', onVisible)
+    window.removeEventListener('focus', onVisible)
+  }
+}, [reload])
+
   const startAdding = (type) => {
   setAdding(type); setAddVal(''); setMoodSel(null); setTrainType('Aeróbico'); setTrainDur('')
   setSkincareAm(!!dayData?.dt?.skincare_am); setSkincarePm(!!dayData?.dt?.skincare_pm)
