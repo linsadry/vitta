@@ -70,7 +70,7 @@ function useHomeData(userId) {
     const [
       {data:tracking},{data:weights},{data:firstW},
       {data:nextConsult},{data:nextExam},{data:fivStages},
-      {data:todayWk},{data:todayMeal},{data:todayDiary},
+      {data:todayWk},{data:todayNutrition},{data:todayDiary},
       {data:cycleEntries},{data:upConsults},{data:pastConsults},{data:profile},
     ] = await Promise.all([
       supabase.from('daily_tracking').select('*').eq('user_id',userId).gte('date',daysAgo(120)).order('date',{ascending:false}),
@@ -80,7 +80,7 @@ function useHomeData(userId) {
       supabase.from('lab_results').select('category,scheduled_date,status').eq('user_id',userId).in('status',['agendado']).order('scheduled_date').limit(1).maybeSingle(),
       supabase.from('vitta_fiv_stages').select('*').eq('user_id',userId),
       supabase.from('fitness_workout_logs').select('date').eq('user_id',userId).eq('date',todayStr).limit(1).maybeSingle(),
-      supabase.from('fitness_meals').select('id').eq('user_id',userId).eq('date',todayStr).limit(1).maybeSingle(),
+      supabase.from('nutrition_days').select('id').eq('user_id',userId).eq('date',todayStr).maybeSingle(),
       supabase.from('diary_entries').select('id,mood,date').eq('user_id',userId).eq('date',todayStr).maybeSingle(),
       supabase.from('cycle_entries').select('date,type').eq('user_id',userId).gte('date',d90).order('date'),
       supabase.from('health_consultations').select('*').eq('user_id',userId).gte('date',todayStr).order('date').limit(4),
@@ -113,7 +113,7 @@ function useHomeData(userId) {
       todayAgua:(todayTracking?.water_ml||0)>0,
       todaySono:(todayTracking?.sleep_hours||0)>0,
       todayTreino:!!todayWk,
-      todayRefeicao:!!todayMeal,
+      todayRefeicao:!!todayNutrition,
       todaySkincare:(todayTracking?.skincare_am?1:0)+(todayTracking?.skincare_pm?1:0),
       skincare_am:!!todayTracking?.skincare_am,
       skincare_pm:!!todayTracking?.skincare_pm,
@@ -421,14 +421,14 @@ const [skincarePm, setSkincarePm] = useState(false)
     if (!date || !userId) return
     setDayData(null)
     const load = async () => {
-      const [{ data:dt },{ data:diary },{ data:wkLogs },{ data:meals },{ data:weight }] = await Promise.all([
+      const [{ data:dt },{ data:diary },{ data:wkLogs },{ data:nutrition },{ data:weight }] = await Promise.all([
         supabase.from('daily_tracking').select('*').eq('user_id',userId).eq('date',date).maybeSingle(),
         supabase.from('diary_entries').select('mood,content,id').eq('user_id',userId).eq('date',date).maybeSingle(),
         supabase.from('fitness_workout_logs').select('exercise_name,load,reps').eq('user_id',userId).eq('date',date).limit(10),
-        supabase.from('fitness_meals').select('name,kcal,protein_g').eq('user_id',userId).eq('date',date).limit(6),
+        supabase.from('nutrition_days').select('kcal,protein_g,carbs_g,fat_g,meals_count,diet_escape,diet_escape_note,alcohol,alcohol_note').eq('user_id',userId).eq('date',date).maybeSingle(),
         supabase.from('physical_metrics').select('weight').eq('user_id',userId).eq('date',date).maybeSingle(),
       ])
-      setDayData({ dt, diary, wkLogs:wkLogs||[], meals:meals||[], weight })
+      setDayData({ dt, diary, wkLogs:wkLogs||[], nutrition, weight })
     }
     load()
   }, [date, userId, rk])
@@ -491,7 +491,7 @@ const [skincarePm, setSkincarePm] = useState(false)
 }
 
   const dt = dayData?.dt
-  const hasAny = dayData && (dt || dayData.diary || dayData.wkLogs?.length || dayData.meals?.length || dayData.weight)
+  const hasAny = dayData && (dt || dayData.diary || dayData.wkLogs?.length || dayData.nutrition || dayData.weight)
 
   const btnCancel = {
     flex:1, padding:'11px 0', borderRadius:'var(--r-md)',
@@ -548,14 +548,26 @@ const [skincarePm, setSkincarePm] = useState(false)
               </div>
             )}
 
-            {dayData.meals?.length > 0 && (
+            {dayData.nutrition && (
               <div className="card-inset" style={{padding:'12px 14px'}}>
-                <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Refeições</span>
-                {dayData.meals.map((m,i) => (
-                  <div key={i} style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)',marginTop:4}}>
-                    {m.name}{m.kcal?` · ${Math.round(m.kcal)} kcal`:''}
+                <span style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.06em'}}>Alimentação</span>
+                <div style={{display:'flex',gap:16,marginTop:6,flexWrap:'wrap'}}>
+                  {dayData.nutrition.kcal!=null && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>{Math.round(dayData.nutrition.kcal)} kcal</span>}
+                  {dayData.nutrition.protein_g!=null && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Prot {Math.round(dayData.nutrition.protein_g)}g</span>}
+                  {dayData.nutrition.carbs_g!=null && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Carb {Math.round(dayData.nutrition.carbs_g)}g</span>}
+                  {dayData.nutrition.fat_g!=null && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>Gord {Math.round(dayData.nutrition.fat_g)}g</span>}
+                  {dayData.nutrition.meals_count!=null && <span style={{fontSize:13,color:'var(--c-text-700)',fontFamily:'var(--font-ui)'}}>{dayData.nutrition.meals_count} refeições</span>}
+                </div>
+                {dayData.nutrition.diet_escape && (
+                  <div style={{fontSize:12,color:'var(--c-rose-mid)',fontFamily:'var(--font-ui)',marginTop:6}}>
+                    Escapada da dieta{dayData.nutrition.diet_escape_note?`: ${dayData.nutrition.diet_escape_note}`:''}
                   </div>
-                ))}
+                )}
+                {dayData.nutrition.alcohol && (
+                  <div style={{fontSize:12,color:'var(--c-rose-mid)',fontFamily:'var(--font-ui)',marginTop:4}}>
+                    Bebida alcoólica{dayData.nutrition.alcohol_note?`: ${dayData.nutrition.alcohol_note}`:''}
+                  </div>
+                )}
               </div>
             )}
 
@@ -966,53 +978,3 @@ useEffect(() => {
         <div style={{padding:'0 var(--page-pad-x)'}}>
           {loading
             ? <div style={{height:100}} className="loading-shimmer"/>
-            : <ConsistencyCalendar tracking={data?.tracking} cycleByDate={data?.cycleByDate} consultDateSet={data?.consultDateSet} onDayClick={setDaySheet} year={hmYear} month={hmMonth} onPrevMonth={hmPrev} onNextMonth={hmNext}/>
-          }
-        </div>
-      </section>
-
-      {/* ─ PRÓXIMOS EVENTOS ────────────────────────────────────── */}
-      {upcomingEvents.length>0&&(
-        <section style={{marginBottom:28}}>
-          <div className="section-header">
-            <h2 className="section-title">Próximos eventos</h2>
-            <button className="section-link" onClick={()=>navigate('/saude')}>Ver todos</button>
-          </div>
-          <div className="card" style={{margin:'0 var(--page-pad-x)',padding:'0 20px'}}>
-            {upcomingEvents.map((ev,i)=>(
-              <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:i<upcomingEvents.length-1?'1px solid var(--c-border-light)':'none'}}>
-                <div style={{width:40,flexShrink:0,textAlign:'center'}}>
-                  <div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:500,color:'var(--c-text-900)',lineHeight:1}}>{new Date(ev.date+'T12:00:00').getDate()}</div>
-                  <div style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.04em'}}>{new Date(ev.date+'T12:00:00').toLocaleDateString('pt-BR',{month:'short'})}</div>
-                </div>
-                <div style={{width:3,height:36,borderRadius:2,background:ev.date>=today_?'var(--c-rose)':'var(--c-base-3)',flexShrink:0}}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.title}</div>
-                  {ev.subtitle&&<div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{ev.subtitle}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {upcomingEvents.length===0&&!loading&&(
-        <section style={{marginBottom:28}}>
-          <div className="section-header"><h2 className="section-title">Próximos eventos</h2></div>
-          <div style={{padding:'0 var(--page-pad-x)'}}>
-            <div className="card-inset empty-state" style={{padding:24}}>
-              <CalendarDays size={28} style={{color:'var(--c-text-100)'}}/>
-              <p className="empty-state-text">Nenhum evento agendado</p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ─ MODALS ──────────────────────────────────────────────── */}
-      {modal==='skincare'
-        ? <SkincareModal userId={userId} skincareAm={!!data?.skincare_am} skincarePm={!!data?.skincare_pm} onClose={()=>setModal(null)} onSave={reload}/>
-        : modal && <RegisterModal type={modal} userId={userId} data={data} onClose={()=>setModal(null)} onSave={reload}/>}
-      {daySheet && <DayDetailSheet date={daySheet} userId={userId} onClose={()=>setDaySheet(null)} onReload={reload}/>}
-    </div>
-  )
-}
