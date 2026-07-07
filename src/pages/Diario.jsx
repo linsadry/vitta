@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { BookOpen, UtensilsCrossed, Plus, X, Check, ChevronDown } from 'lucide-react'
+import { BookOpen, UtensilsCrossed, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 import { today, daysAgo, formatDate } from '../lib/utils'
@@ -163,189 +163,145 @@ function DiarioTab({ userId }) {
   )
 }
 
-/* ─── MEAL CARD ──────────────────────────────────────────────────── */
-function MealCard({ meal }) {
-  const macros = [
-    { label: 'Kcal', value: meal.kcal,      color: '#C9A96E' },
-    { label: 'Prot', value: meal.protein_g, color: '#8A9E8C', unit: 'g' },
-    { label: 'Carb', value: meal.carbs_g,   color: '#6BA8D4', unit: 'g' },
-    { label: 'Gord', value: meal.fat_g,     color: '#D4A5A5', unit: 'g' },
-  ]
-  return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid var(--c-border-light)' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div>
-          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 500, color: 'var(--c-text-900)' }}>{meal.name || 'Refeição'}</div>
-          {meal.time && <div style={{ fontSize: 11, color: 'var(--c-text-300)', marginTop: 2 }}>{meal.time}</div>}
-          {meal.raw_text && <div style={{ fontSize: 12, color: 'var(--c-text-500)', marginTop: 2, lineHeight: 1.4 }}>{meal.raw_text}</div>}
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {macros.filter(m => m.value).map(m => (
-          <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: 'var(--c-text-500)', fontFamily: 'var(--font-ui)' }}>
-              {Math.round(m.value)}{m.unit || ''} {m.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ─── ADD MEAL MODAL ─────────────────────────────────────────────── */
-function AddMealModal({ userId, onClose, onSave }) {
-  const [name, setName]         = useState('')
-  const [desc, setDesc]         = useState('')
-  const [time, setTime]         = useState('')
-  const [kcal, setKcal]         = useState('')
-  const [protein, setProtein]   = useState('')
-  const [carbs, setCarbs]       = useState('')
-  const [fat, setFat]           = useState('')
-  const [showMacros, setShowMacros] = useState(false)
-  const [saving, setSaving]     = useState(false)
-
-  const toN = (v) => v ? parseFloat(v.replace(',', '.')) || null : null
-
-  const save = async () => {
-    if (!name && !desc) return
-    setSaving(true)
-    await supabase.from('fitness_meals').insert({
-      user_id: userId, date: today(), name: name || desc.slice(0, 40) || 'Refeição',
-      raw_text: desc || null, time: time || null,
-      kcal: toN(kcal), protein_g: toN(protein), carbs_g: toN(carbs), fat_g: toN(fat),
-    })
-    onSave?.(); onClose()
-  }
-
-  return (
-    <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet" onClick={e => e.stopPropagation()}>
-        <div className="sheet-handle" />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 className="sheet-title" style={{ marginBottom: 0 }}>Registrar refeição</h2>
-          <button onClick={onClose} className="btn-ghost" style={{ padding: 8 }}><X size={18} strokeWidth={1.8} /></button>
-        </div>
-
-        <div style={{ marginBottom: 14 }}>
-          <label className="input-label">Nome</label>
-          <input className="input-field" type="text" placeholder="Ex: Almoço, Café da manhã"
-            value={name} onChange={e => setName(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label className="input-label">O que você comeu?</label>
-          <textarea className="input-field" rows={3} placeholder="Ex: Arroz, feijão, frango grelhado, salada..."
-            value={desc} onChange={e => setDesc(e.target.value)} style={{ resize: 'none' }} />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label className="input-label">Horário</label>
-          <input className="input-field" type="time" value={time} onChange={e => setTime(e.target.value)} />
-        </div>
-
-        <button onClick={() => setShowMacros(v => !v)} className="btn-ghost" style={{ width: '100%', padding: '10px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: showMacros ? 14 : 20 }}>
-          <span>Adicionar macros manualmente</span>
-          <ChevronDown size={14} style={{ transform: showMacros ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-        </button>
-
-        {showMacros && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-            {[
-              { key: 'kcal',    label: 'Calorias', state: kcal,    set: setKcal,    unit: 'kcal' },
-              { key: 'protein', label: 'Proteína', state: protein, set: setProtein, unit: 'g' },
-              { key: 'carbs',   label: 'Carboidratos', state: carbs, set: setCarbs, unit: 'g' },
-              { key: 'fat',     label: 'Gordura',  state: fat,     set: setFat,     unit: 'g' },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="input-label">{f.label} ({f.unit})</label>
-                <input className="input-field" type="text" inputMode="decimal" placeholder="0"
-                  value={f.state} onChange={e => f.set(e.target.value)} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        <button className="btn-primary" onClick={save} disabled={saving || (!name && !desc)}>
-          {saving ? 'Salvando...' : 'Salvar refeição'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/* ─── ALIMENTACAO TAB ────────────────────────────────────────────── */
+/* ─── ALIMENTACAO TAB (simplificado) ─────────────────────────────── */
 function AlimentacaoTab({ userId }) {
-  const [meals, setMeals]     = useState([])
-  const [showAdd, setShowAdd] = useState(false)
+  const [entry, setEntry]             = useState(null)
+  const [kcal, setKcal]               = useState('')
+  const [protein, setProtein]         = useState('')
+  const [carbs, setCarbs]             = useState('')
+  const [fat, setFat]                 = useState('')
+  const [mealsCount, setMealsCount]   = useState('')
+  const [dietEscape, setDietEscape]         = useState(false)
+  const [dietEscapeNote, setDietEscapeNote] = useState('')
+  const [alcohol, setAlcohol]         = useState(false)
+  const [alcoholNote, setAlcoholNote] = useState('')
+  const [saving, setSaving]           = useState(false)
+  const [saved, setSaved]             = useState(false)
   const todayStr = today()
 
   const load = useCallback(async () => {
     if (!userId) return
-    const { data } = await supabase.from('fitness_meals')
-      .select('*').eq('user_id', userId).eq('date', todayStr).order('created_at')
-    setMeals(data || [])
+    const { data } = await supabase.from('nutrition_days')
+      .select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle()
+    if (data) {
+      setEntry(data)
+      setKcal(data.kcal != null ? String(data.kcal) : '')
+      setProtein(data.protein_g != null ? String(data.protein_g) : '')
+      setCarbs(data.carbs_g != null ? String(data.carbs_g) : '')
+      setFat(data.fat_g != null ? String(data.fat_g) : '')
+      setMealsCount(data.meals_count != null ? String(data.meals_count) : '')
+      setDietEscape(!!data.diet_escape)
+      setDietEscapeNote(data.diet_escape_note || '')
+      setAlcohol(!!data.alcohol)
+      setAlcoholNote(data.alcohol_note || '')
+    } else {
+      setEntry(null)
+      setKcal(''); setProtein(''); setCarbs(''); setFat('')
+      setMealsCount(''); setDietEscape(false); setDietEscapeNote('')
+      setAlcohol(false); setAlcoholNote('')
+    }
   }, [userId, todayStr])
 
   useEffect(() => { load() }, [load])
 
-  const totals = meals.reduce((acc, m) => ({
-    kcal:      acc.kcal      + (m.kcal      || 0),
-    protein_g: acc.protein_g + (m.protein_g || 0),
-    carbs_g:   acc.carbs_g   + (m.carbs_g   || 0),
-    fat_g:     acc.fat_g     + (m.fat_g     || 0),
-  }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
+  const toN = (v) => v ? parseFloat(String(v).replace(',', '.')) || null : null
+  const toI = (v) => v ? parseInt(v, 10) || null : null
 
-  const GOALS = { kcal: 1800, protein_g: 120, carbs_g: 200, fat_g: 60 }
+  const save = async () => {
+    setSaving(true)
+    const row = {
+      user_id: userId, date: todayStr,
+      kcal: toN(kcal), protein_g: toN(protein), carbs_g: toN(carbs), fat_g: toN(fat),
+      meals_count: toI(mealsCount),
+      diet_escape: dietEscape, diet_escape_note: dietEscape ? (dietEscapeNote || null) : null,
+      alcohol: alcohol, alcohol_note: alcohol ? (alcoholNote || null) : null,
+      updated_at: new Date().toISOString(),
+    }
+    if (entry) {
+      await supabase.from('nutrition_days').update(row).eq('id', entry.id)
+    } else {
+      await supabase.from('nutrition_days').insert(row)
+    }
+    setSaved(true)
+    setTimeout(() => { setSaved(false); load() }, 1200)
+    setSaving(false)
+  }
+
+  const ToggleRow = ({ label, active, onToggle }) => (
+    <button onClick={onToggle} style={{
+      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+      border: `1px solid ${active ? 'var(--c-rose)' : 'var(--c-border)'}`,
+      background: active ? 'var(--c-rose)11' : 'transparent',
+    }}>
+      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>{label}</span>
+      <span style={{
+        width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${active ? 'var(--c-rose)' : 'var(--c-text-100)'}`,
+        background: active ? 'var(--c-rose)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        {active && <Check size={12} color="#fff" strokeWidth={2.5} />}
+      </span>
+    </button>
+  )
 
   return (
     <div style={{ padding: '0 var(--page-pad-x)' }}>
-      {/* Daily summary */}
-      {meals.length > 0 && (
-        <div className="card" style={{ padding: '16px 18px', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--c-text-900)' }}>Resumo de hoje</h3>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--c-text-900)' }}>
-              {Math.round(totals.kcal)} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--c-text-300)' }}>kcal</span>
-            </span>
-          </div>
+      <div className="card" style={{ padding: '18px 18px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--c-text-900)' }}>Hoje</h3>
+          {saved && <span style={{ fontSize: 11, color: 'var(--c-sage)', fontFamily: 'var(--font-ui)' }}>Salvo</span>}
+        </div>
+
+        {/* Macros manuais */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           {[
-            { label: 'Proteína', value: totals.protein_g, goal: GOALS.protein_g, color: '#8A9E8C', unit: 'g' },
-            { label: 'Carboidratos', value: totals.carbs_g, goal: GOALS.carbs_g, color: '#6BA8D4', unit: 'g' },
-            { label: 'Gordura', value: totals.fat_g, goal: GOALS.fat_g, color: '#D4A5A5', unit: 'g' },
-          ].map(m => (
-            <div key={m.label} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: 'var(--c-text-500)', fontFamily: 'var(--font-ui)' }}>{m.label}</span>
-                <span style={{ fontSize: 12, color: 'var(--c-text-700)', fontFamily: 'var(--font-ui)' }}>
-                  {Math.round(m.value)}{m.unit} / {m.goal}{m.unit}
-                </span>
-              </div>
-              <div style={{ height: 4, background: 'var(--c-base-2)', borderRadius: 2 }}>
-                <div style={{ height: '100%', width: `${Math.min((m.value / m.goal) * 100, 100)}%`, background: m.color, borderRadius: 2, transition: 'width 0.4s ease' }} />
-              </div>
+            { label: 'Calorias (kcal)', state: kcal, set: setKcal },
+            { label: 'Proteína (g)', state: protein, set: setProtein },
+            { label: 'Carboidratos (g)', state: carbs, set: setCarbs },
+            { label: 'Gordura (g)', state: fat, set: setFat },
+          ].map(f => (
+            <div key={f.label}>
+              <label className="input-label">{f.label}</label>
+              <input className="input-field" type="text" inputMode="decimal" placeholder="0"
+                value={f.state} onChange={e => f.set(e.target.value)} />
             </div>
           ))}
         </div>
-      )}
 
-      {/* Add meal button */}
-      <button className="btn-primary" style={{ marginBottom: 20 }} onClick={() => setShowAdd(true)}>
-        + Registrar refeição
-      </button>
-
-      {/* Meal list */}
-      {meals.length > 0 ? (
-        <div className="card" style={{ padding: '0 16px' }}>
-          {meals.map(m => <MealCard key={m.id} meal={m} />)}
+        {/* Número de refeições */}
+        <div style={{ marginBottom: 18 }}>
+          <label className="input-label">Número de refeições</label>
+          <input className="input-field" type="text" inputMode="numeric" placeholder="Ex: 4"
+            value={mealsCount} onChange={e => setMealsCount(e.target.value.replace(/\D/g, ''))} />
         </div>
-      ) : (
-        <div className="empty-state" style={{ paddingTop: 32 }}>
-          <UtensilsCrossed size={32} style={{ color: 'var(--c-text-100)' }} />
-          <p className="empty-state-text">Nenhuma refeição registrada hoje</p>
-        </div>
-      )}
 
-      {showAdd && <AddMealModal userId={userId} onClose={() => setShowAdd(false)} onSave={load} />}
+        {/* Escapada da dieta */}
+        <div style={{ marginBottom: dietEscape ? 10 : 14 }}>
+          <ToggleRow label="Teve escapada da dieta?" active={dietEscape} onToggle={() => setDietEscape(v => !v)} />
+        </div>
+        {dietEscape && (
+          <div style={{ marginBottom: 16 }}>
+            <input className="input-field" type="text" placeholder="Anotação (opcional)"
+              value={dietEscapeNote} onChange={e => setDietEscapeNote(e.target.value)} />
+          </div>
+        )}
+
+        {/* Álcool */}
+        <div style={{ marginBottom: alcohol ? 10 : 20 }}>
+          <ToggleRow label="Teve ingestão de bebida alcoólica?" active={alcohol} onToggle={() => setAlcohol(v => !v)} />
+        </div>
+        {alcohol && (
+          <div style={{ marginBottom: 20 }}>
+            <input className="input-field" type="text" placeholder="Anotação (opcional)"
+              value={alcoholNote} onChange={e => setAlcoholNote(e.target.value)} />
+          </div>
+        )}
+
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
+        </button>
+      </div>
     </div>
   )
 }
