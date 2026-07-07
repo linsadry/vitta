@@ -978,3 +978,53 @@ useEffect(() => {
         <div style={{padding:'0 var(--page-pad-x)'}}>
           {loading
             ? <div style={{height:100}} className="loading-shimmer"/>
+            : <ConsistencyCalendar tracking={data?.tracking} cycleByDate={data?.cycleByDate} consultDateSet={data?.consultDateSet} onDayClick={setDaySheet} year={hmYear} month={hmMonth} onPrevMonth={hmPrev} onNextMonth={hmNext}/>
+          }
+        </div>
+      </section>
+
+      {/* ─ PRÓXIMOS EVENTOS ────────────────────────────────────── */}
+      {upcomingEvents.length>0&&(
+        <section style={{marginBottom:28}}>
+          <div className="section-header">
+            <h2 className="section-title">Próximos eventos</h2>
+            <button className="section-link" onClick={()=>navigate('/saude')}>Ver todos</button>
+          </div>
+          <div className="card" style={{margin:'0 var(--page-pad-x)',padding:'0 20px'}}>
+            {upcomingEvents.map((ev,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:i<upcomingEvents.length-1?'1px solid var(--c-border-light)':'none'}}>
+                <div style={{width:40,flexShrink:0,textAlign:'center'}}>
+                  <div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:500,color:'var(--c-text-900)',lineHeight:1}}>{new Date(ev.date+'T12:00:00').getDate()}</div>
+                  <div style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.04em'}}>{new Date(ev.date+'T12:00:00').toLocaleDateString('pt-BR',{month:'short'})}</div>
+                </div>
+                <div style={{width:3,height:36,borderRadius:2,background:ev.date>=today_?'var(--c-rose)':'var(--c-base-3)',flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.title}</div>
+                  {ev.subtitle&&<div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{ev.subtitle}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {upcomingEvents.length===0&&!loading&&(
+        <section style={{marginBottom:28}}>
+          <div className="section-header"><h2 className="section-title">Próximos eventos</h2></div>
+          <div style={{padding:'0 var(--page-pad-x)'}}>
+            <div className="card-inset empty-state" style={{padding:24}}>
+              <CalendarDays size={28} style={{color:'var(--c-text-100)'}}/>
+              <p className="empty-state-text">Nenhum evento agendado</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ─ MODALS ──────────────────────────────────────────────── */}
+      {modal==='skincare'
+        ? <SkincareModal userId={userId} skincareAm={!!data?.skincare_am} skincarePm={!!data?.skincare_pm} onClose={()=>setModal(null)} onSave={reload}/>
+        : modal && <RegisterModal type={modal} userId={userId} data={data} onClose={()=>setModal(null)} onSave={reload}/>}
+      {daySheet && <DayDetailSheet date={daySheet} userId={userId} onClose={()=>setDaySheet(null)} onReload={reload}/>}
+    </div>
+  )
+}
