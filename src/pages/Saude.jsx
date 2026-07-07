@@ -44,7 +44,7 @@ function useOverviewData(userId) {
       supabase.from('vitta_fiv_stages').select('stage_key,stage_label,status,start_date').eq('user_id',userId),
       supabase.from('physical_metrics').select('weight,date').eq('user_id',userId).order('date',{ascending:false}).limit(2),
       supabase.from('daily_tracking').select('sleep_hours,water_ml,date').eq('user_id',userId).gte('date',d7),
-      supabase.from('lab_results').select('id,category,date,status,scheduled_date').eq('user_id',userId).order('date',{ascending:false}),
+      supabase.from('lab_results').select('id,category,date,status,scheduled_date,location').eq('user_id',userId).order('date',{ascending:false}),
       supabase.from('vitta_historico').select('date').eq('user_id',userId),
     ])
     const activeMeds = (meds||[]).filter(m=>m.active)
@@ -72,7 +72,7 @@ function useOverviewData(userId) {
       labResults: labResults||[], nextExam,
       historicoCount: histList.length, historicoYears,
     })
-    ssetLoading(false)
+    setLoading(false)
   }, [userId])
   useEffect(()=>{load()},[load])
   return {data, loading, reload:load}
@@ -229,7 +229,7 @@ function MedModal({userId, onClose, onSave}) {
 
 // ─── EXAM MODAL ───────────────────────────────────────────────────
 function ExamModal({userId, onClose, onSave}) {
-  const [f,setF]=useState({category:'',date:'',status:'agendado',scheduled_date:'',lab_name:'',notes:''})
+  const [f,setF]=useState({category:'',date:'',status:'agendado',scheduled_date:'',location:'',notes:''})
   const [saving,setSaving]=useState(false)
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
   const save=async()=>{if(!f.category)return;setSaving(true);await supabase.from('lab_results').insert({user_id:userId,...f});onSave?.();onClose()}
@@ -251,7 +251,7 @@ function ExamModal({userId, onClose, onSave}) {
         </div>
         {(f.status==='agendado')&&<div style={{marginBottom:12}}><label className="input-label">Data agendada</label><input className="input-field" type="date" value={f.scheduled_date} onChange={e=>set('scheduled_date',e.target.value)}/></div>}
         {(f.status==='realizado')&&<div style={{marginBottom:12}}><label className="input-label">Data de realização</label><input className="input-field" type="date" value={f.date} onChange={e=>set('date',e.target.value)}/></div>}
-        <div style={{marginBottom:12}}><label className="input-label">Laboratório</label><input className="input-field" placeholder="Nome do laboratório" value={f.lab_name} onChange={e=>set('lab_name',e.target.value)}/></div>
+        <div style={{marginBottom:12}}><label className="input-label">Local</label><input className="input-field" placeholder="Clínica, hospital, laboratório..." value={f.location} onChange={e=>set('location',e.target.value)}/></div>
         <div style={{marginBottom:20}}><label className="input-label">Observações</label><textarea className="input-field" rows={2} value={f.notes} onChange={e=>set('notes',e.target.value)} style={{resize:'none'}}/></div>
         <button className="btn-primary" onClick={save} disabled={saving||!f.category}>{saving?'Salvando...':'Salvar'}</button>
       </div>
@@ -317,19 +317,17 @@ function ConsultasView({userId, consultas, onBack, onReload}) {
 function MedicamentosView({userId, meds, onBack, onReload}) {
   const [modal,setModal]=useState(false)
   const [logs,setLogs]=useState([])
-  const [usoModal,setUsoModal]=useState(null)  // medicamento eventual selecionado p/ registrar uso
-  const [usosRecentes,setUsosRecentes]=useState({})  // medication_id -> count nos últimos 30d
+  const [usoModal,setUsoModal]=useState(null)
+  const [usosRecentes,setUsosRecentes]=useState({})
   const todayStr=today()
 
   const loadLogs=useCallback(async()=>{
     if(!userId) return
     const {data}=await supabase.from('vitta_med_logs').select('medication_id').eq('user_id',userId).eq('date',todayStr)
     setLogs((data||[]).map(l=>l.medication_id))
-    // Contagem de usos eventuais nos últimos 30 dias
     const {data:usos}=await supabase.from('vitta_med_uso_eventual').select('medication_id,used_at').eq('user_id',userId).gte('date',daysAgo(30))
     const counts={}
     for(const u of usos||[]){counts[u.medication_id]=(counts[u.medication_id]||0)+1}
-    // Último uso
     const last={}
     for(const u of usos||[]){if(!last[u.medication_id]||u.used_at>last[u.medication_id])last[u.medication_id]=u.used_at}
     setUsosRecentes({counts,last})
@@ -371,7 +369,6 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
         <button className="btn-primary" onClick={()=>setModal(true)}>+ Novo medicamento</button>
       </div>
       <div style={{padding:'0 var(--page-pad-x)'}}>
-        {/* Uso contínuo */}
         {active.length>0&&(
           <section style={{marginBottom:24}}>
             <div className="section-header"><h2 className="section-title" style={{fontSize:15}}>Uso contínuo</h2></div>
@@ -397,7 +394,6 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
           </section>
         )}
 
-        {/* Uso eventual / SOS */}
         {eventual.length>0&&(
           <section style={{marginBottom:24}}>
             <div className="section-header"><h2 className="section-title" style={{fontSize:15}}>Uso eventual</h2></div>
@@ -425,7 +421,6 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
           </section>
         )}
 
-        {/* Histórico (inativos) */}
         {inactive.length>0&&(
           <section style={{marginBottom:24}}>
             <div className="section-header"><h2 className="section-title" style={{fontSize:15,color:'var(--c-text-300)'}}>Histórico</h2></div>
@@ -507,7 +502,7 @@ function ExamesView({userId, labResults, onBack, onReload}) {
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontFamily:'var(--font-ui)',fontSize:13,fontWeight:500,color:'var(--c-text-900)'}}>{e.category}</div>
-        <div style={{fontSize:11,color:'var(--c-text-400)',marginTop:2}}>{e.lab_name&&`${e.lab_name} · `}{formatDate(e.scheduled_date||e.date)}</div>
+        <div style={{fontSize:11,color:'var(--c-text-400)',marginTop:2}}>{e.location&&`${e.location} · `}{formatDate(e.scheduled_date||e.date)}</div>
       </div>
     </div>
   )
@@ -636,7 +631,6 @@ function HistoricoView({userId, onBack, onReload}) {
 
   const filtered=filterCat==='Todos'?items:items.filter(i=>i.category===filterCat)
 
-  // Group by year then month
   const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
   const byYear={}
   for(const item of filtered){
@@ -748,7 +742,6 @@ export default function Saude({userId}) {
       {/* Seu momento atual */}
       <section style={{padding:'0 var(--page-pad-x)',marginBottom:28}}>
         <h2 className="section-title" style={{marginBottom:16}}>Seu momento atual</h2>
-        {/* Row 1: Consulta + Exame */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
           <InfoCard icon={Stethoscope} label="Próxima consulta" color="var(--c-rose)"
             value={d.nextConsulta?.specialty||'—'}
@@ -759,7 +752,6 @@ export default function Saude({userId}) {
             sub={d.nextExam?formatDate(d.nextExam.scheduled_date||d.nextExam.date):null}
             onClick={()=>setView('exames')}/>
         </div>
-        {/* Row 2: Meds + FIV+Ciclo */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
           <InfoCard icon={Pill} label="Medicamentos" color="var(--c-lavender)"
             value={d.activeMeds?.length||'0'}
@@ -770,7 +762,6 @@ export default function Saude({userId}) {
             sub={d.cycle?.phase}
             onClick={()=>navigate('/ciclo')}/>
         </div>
-        {/* Row 3: Peso + Sono + Água */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
           <InfoCard icon={Scale} label="Peso" color="var(--c-rose)"
             value={d.currentWeight?`${parseFloat(d.currentWeight).toFixed(1)}`:'—'}
@@ -801,7 +792,6 @@ export default function Saude({userId}) {
       <section style={{padding:'0 var(--page-pad-x)',marginBottom:24}}>
         <h2 className="section-title" style={{marginBottom:16}}>Saúde Reprodutiva</h2>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-          {/* Ciclo card */}
           <div onClick={()=>navigate('/ciclo')} style={{background:'rgba(212,165,165,0.08)',border:'1px solid rgba(212,165,165,0.3)',borderRadius:'var(--r-lg)',padding:'16px 14px',cursor:'pointer'}}>
             <div style={{fontSize:10,color:'var(--c-rose-deep)',fontFamily:'var(--font-ui)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8,fontWeight:500}}>Ciclo</div>
             <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:500,color:'var(--c-text-900)',marginBottom:4}}>{d.cycle?.currentDay?`Dia ${d.cycle.currentDay}`:'—'}</div>
@@ -809,7 +799,6 @@ export default function Saude({userId}) {
             {d.cycle?.nextPeriod&&<div style={{fontSize:11,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>Próx. {formatDateShort(d.cycle.nextPeriod)}</div>}
             <div style={{marginTop:12,fontSize:12,color:'var(--c-rose-mid)',fontFamily:'var(--font-ui)',fontWeight:500,display:'flex',alignItems:'center',gap:4}}>Ver ciclo <ChevronRight size={12}/></div>
           </div>
-          {/* FIV card */}
           <div onClick={()=>navigate('/fiv')} style={{background:'rgba(196,184,212,0.1)',border:'1px solid rgba(196,184,212,0.3)',borderRadius:'var(--r-lg)',padding:'16px 14px',cursor:'pointer'}}>
             <div style={{fontSize:10,color:'#7B6FA0',fontFamily:'var(--font-ui)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8,fontWeight:500}}>Jornada FIV</div>
             <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:500,color:'var(--c-text-900)',marginBottom:4}}>{d.activeFiv?.stage_label||`${d.doneCount||0}/8`}</div>
