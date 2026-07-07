@@ -210,7 +210,6 @@ function MedModal({userId, onClose, onSave}) {
         </div>
         <div style={{marginBottom:12}}><label className="input-label">Nome</label><input className="input-field" placeholder={isEventual?'Ex: Bombinha de asma, Loratadina':'Ex: Progesterona'} value={f.name} onChange={e=>set('name',e.target.value)}/></div>
         <div style={{marginBottom:12}}><label className="input-label">Dose</label><input className="input-field" placeholder="Ex: 200mg, 2 jatos" value={f.dose} onChange={e=>set('dose',e.target.value)}/></div>
-        {/* Frequência e horário só para contínuos */}
         {!isEventual&&(
           <>
             <div style={{marginBottom:12}}><label className="input-label">Frequência</label><input className="input-field" placeholder="Ex: 2x ao dia" value={f.frequency} onChange={e=>set('frequency',e.target.value)}/></div>
@@ -231,8 +230,25 @@ function MedModal({userId, onClose, onSave}) {
 function ExamModal({userId, onClose, onSave}) {
   const [f,setF]=useState({category:'',date:'',status:'agendado',scheduled_date:'',location:'',notes:''})
   const [saving,setSaving]=useState(false)
+  const [errMsg,setErrMsg]=useState('')
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
-  const save=async()=>{if(!f.category)return;setSaving(true);await supabase.from('lab_results').insert({user_id:userId,...f});onSave?.();onClose()}
+  const save=async()=>{
+    if(!f.category) return
+    setSaving(true)
+    setErrMsg('')
+    // Converte strings vazias em null — colunas de data não aceitam '' no Postgres
+    const payload = {
+      category: f.category,
+      status: f.status,
+      date: f.date || null,
+      scheduled_date: f.scheduled_date || null,
+      location: f.location || null,
+      notes: f.notes || null,
+    }
+    const { error } = await supabase.from('lab_results').insert({ user_id: userId, ...payload })
+    if (error) { setSaving(false); setErrMsg('Não foi possível salvar. Tente novamente.'); return }
+    onSave?.(); onClose()
+  }
   return (
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
@@ -241,7 +257,7 @@ function ExamModal({userId, onClose, onSave}) {
           <h2 className="sheet-title" style={{marginBottom:0}}>Novo exame</h2>
           <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
         </div>
-        <div style={{marginBottom:12}}><label className="input-label">Nome do exame</label><input className="input-field" placeholder="Ex: TSH, Hemograma" value={f.category} onChange={e=>set('category',e.target.value)}/></div>
+        <div style={{marginBottom:12}}><label className="input-label">Nome do exame</label><input className="input-field" placeholder="Ex: TSH, Hemograma, USG mamas" value={f.category} onChange={e=>set('category',e.target.value)}/></div>
         <div style={{marginBottom:12}}><label className="input-label">Status</label>
           <div style={{display:'flex',gap:8}}>
             {[{v:'pendente',l:'Pendente'},{v:'agendado',l:'Agendado'},{v:'realizado',l:'Realizado'}].map(({v,l})=>(
@@ -252,7 +268,11 @@ function ExamModal({userId, onClose, onSave}) {
         {(f.status==='agendado')&&<div style={{marginBottom:12}}><label className="input-label">Data agendada</label><input className="input-field" type="date" value={f.scheduled_date} onChange={e=>set('scheduled_date',e.target.value)}/></div>}
         {(f.status==='realizado')&&<div style={{marginBottom:12}}><label className="input-label">Data de realização</label><input className="input-field" type="date" value={f.date} onChange={e=>set('date',e.target.value)}/></div>}
         <div style={{marginBottom:12}}><label className="input-label">Local</label><input className="input-field" placeholder="Clínica, hospital, laboratório..." value={f.location} onChange={e=>set('location',e.target.value)}/></div>
-        <div style={{marginBottom:20}}><label className="input-label">Observações</label><textarea className="input-field" rows={2} value={f.notes} onChange={e=>set('notes',e.target.value)} style={{resize:'none'}}/></div>
+        <div style={{marginBottom:12}}>
+          <label className="input-label">Laudo / resultado (resumo)</label>
+          <textarea className="input-field" rows={4} value={f.notes} onChange={e=>set('notes',e.target.value)} style={{resize:'none'}} placeholder="Ex: Nódulo BI-RADS 2 na mama direita, sem alterações significativas..."/>
+        </div>
+        {errMsg && <p style={{fontSize:12,color:'var(--c-rose-mid)',fontFamily:'var(--font-ui)',marginBottom:12}}>{errMsg}</p>}
         <button className="btn-primary" onClick={save} disabled={saving||!f.category}>{saving?'Salvando...':'Salvar'}</button>
       </div>
     </div>
