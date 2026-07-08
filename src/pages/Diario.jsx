@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { BookOpen, UtensilsCrossed, Check } from 'lucide-react'
+import { BookOpen, UtensilsCrossed, Plus, X, Check, ChevronDown } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 import { today, daysAgo, formatDate } from '../lib/utils'
@@ -34,9 +34,9 @@ function MoodFace({ level, size = 32, selected, onClick }) {
 const MOOD_LABELS = { 1: 'Muito feliz', 2: 'Bem', 3: 'Neutro', 4: 'Triste', 5: 'Muito triste' }
 
 /* ─── DIARY ENTRY CARD ───────────────────────────────────────────── */
-function DiaryCard({ entry }) {
+function DiaryCard({ entry, onClick }) {
   return (
-    <div className="card" style={{ padding: '16px 18px', marginBottom: 10 }}>
+    <div className="card" onClick={onClick} style={{ padding: '16px 18px', marginBottom: 10, cursor: onClick ? 'pointer' : 'default' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)' }}>{formatDate(entry.date)}</span>
         {entry.mood && (
@@ -62,6 +62,75 @@ function DiaryCard({ entry }) {
   )
 }
 
+/* ─── EDIT PAST ENTRY MODAL ──────────────────────────────────────── */
+function DiaryEntryModal({ entry, onClose, onSave }) {
+  const [mood, setMood]         = useState(entry.mood ? parseInt(entry.mood) : null)
+  const [content, setContent]   = useState(entry.content || '')
+  const [gratitude, setGratitude] = useState(entry.gratitude || '')
+  const [saving, setSaving]     = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    await supabase.from('diary_entries').update({
+      mood: mood ? String(mood) : null,
+      content: content || null,
+      gratitude: gratitude || null,
+    }).eq('id', entry.id)
+    onSave?.(); onClose()
+  }
+
+  const remove = async () => {
+    if (!window.confirm('Excluir este registro do diário?')) return
+    setSaving(true)
+    await supabase.from('diary_entries').delete().eq('id', entry.id)
+    onSave?.(); onClose()
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 className="sheet-title" style={{ marginBottom: 0 }}>{formatDate(entry.date)}</h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding: 8 }}><X size={18} strokeWidth={1.8} /></button>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--c-text-300)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            Como você estava?
+          </p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <MoodFace key={n} level={n} size={28} selected={mood === n} onClick={() => setMood(p => p === n ? null : n)} />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label className="input-label">Reflexões do dia</label>
+          <textarea className="input-field" rows={4} value={content} onChange={e => setContent(e.target.value)} style={{ resize: 'none', lineHeight: 1.6 }} />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label className="input-label">Gratidão</label>
+          <input className="input-field" type="text" value={gratitude} onChange={e => setGratitude(e.target.value)} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={remove} disabled={saving} style={{
+            flex: 1, padding: '13px 0', borderRadius: 'var(--r-full)',
+            border: '1.5px solid var(--c-rose-mid)', background: 'none',
+            color: 'var(--c-rose-mid)', fontFamily: 'var(--font-ui)', fontSize: 14, cursor: 'pointer',
+          }}>Excluir</button>
+          <button className="btn-primary" onClick={save} disabled={saving} style={{ flex: 2 }}>
+            {saving ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─── DIARY TAB ──────────────────────────────────────────────────── */
 function DiarioTab({ userId }) {
   const [entries, setEntries]   = useState([])
@@ -71,6 +140,7 @@ function DiarioTab({ userId }) {
   const [gratitude, setGratitude] = useState('')
   const [saving, setSaving]     = useState(false)
   const [saved, setSaved]       = useState(false)
+  const [editingEntry, setEditingEntry] = useState(null)
   const todayStr = today()
 
   const load = useCallback(async () => {
@@ -156,8 +226,17 @@ function DiarioTab({ userId }) {
       {entries.length > 0 && (
         <div>
           <h3 className="section-title" style={{ marginBottom: 12, fontSize: 15 }}>Registros anteriores</h3>
-          {entries.map(e => <DiaryCard key={e.id} entry={{ ...e, mood: e.mood ? parseInt(e.mood) : null }} />)}
+          <p style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', fontStyle: 'italic', marginBottom: 10 }}>
+            Toque num registro para editar
+          </p>
+          {entries.map(e => (
+            <DiaryCard key={e.id} entry={{ ...e, mood: e.mood ? parseInt(e.mood) : null }} onClick={() => setEditingEntry(e)} />
+          ))}
         </div>
+      )}
+
+      {editingEntry && (
+        <DiaryEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} onSave={load} />
       )}
     </div>
   )
@@ -209,9 +288,10 @@ function AlimentacaoTab({ userId }) {
 
   const save = async () => {
     setSaving(true)
+    const proteinVal = toN(protein)
     const row = {
       user_id: userId, date: todayStr,
-      kcal: toN(kcal), protein_g: toN(protein), carbs_g: toN(carbs), fat_g: toN(fat),
+      kcal: toN(kcal), protein_g: proteinVal, carbs_g: toN(carbs), fat_g: toN(fat),
       meals_count: toI(mealsCount),
       diet_escape: dietEscape, diet_escape_note: dietEscape ? (dietEscapeNote || null) : null,
       alcohol: alcohol, alcohol_note: alcohol ? (alcoholNote || null) : null,
@@ -222,6 +302,16 @@ function AlimentacaoTab({ userId }) {
     } else {
       await supabase.from('nutrition_days').insert(row)
     }
+
+    // Sincroniza a proteína com daily_tracking, que alimenta o gráfico de
+    // Hábitos na Evolução e o cálculo de Consistência na Home.
+    const { data: dt } = await supabase.from('daily_tracking').select('id').eq('user_id', userId).eq('date', todayStr).maybeSingle()
+    if (dt) {
+      await supabase.from('daily_tracking').update({ protein_g: proteinVal }).eq('id', dt.id)
+    } else if (proteinVal) {
+      await supabase.from('daily_tracking').insert({ user_id: userId, date: todayStr, protein_g: proteinVal })
+    }
+
     setSaved(true)
     setTimeout(() => { setSaved(false); load() }, 1200)
     setSaving(false)
