@@ -138,7 +138,7 @@ function MeasuresChart({ data, field, color }) {
   const range = Math.max(rawMax - rawMin, 1)
   const minV = rawMin - range * 0.15, maxV = rawMax + range * 0.15
   const xS = (i) => PAD.l + (i / Math.max(points.length - 1, 1)) * plotW
-  const yS = (v) => PAD.t + plotH - ((v - minV) / (maxV - minV)) * plotH
+  const yS = (v) => PAD.t + plotH - ((v - minV) / range) * plotH
   const pts = points.map((p, i) => ({ x: xS(i), y: yS(p.value), ...p }))
   const smooth = (ps) => {
     let d = `M ${ps[0].x} ${ps[0].y}`
@@ -408,76 +408,39 @@ function RegModal({ type, userId, onClose, onSave, editData }) {
   )
 }
 
-/* ─── EVOLUÇÃO DE INDICADORES ────────────────────────────────────── */
-function MiniChart({ data, color }) {
-  if (!data || data.length < 2) {
-    return <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>1 ponto</span>
-    </div>
-  }
-  const W = 200, H = 44, PAD = { t: 6, r: 8, b: 6, l: 8 }
-  const vals = data.map(d => parseFloat(d.result)).filter(v => !isNaN(v))
-  if (!vals.length) return null
-  const minV = Math.min(...vals), maxV = Math.max(...vals)
-  const range = Math.max(maxV - minV, 0.01)
-  const xS = (i) => PAD.l + (i / (data.length - 1)) * (W - PAD.l - PAD.r)
-  const yS = (v) => PAD.t + (H - PAD.t - PAD.b) - ((v - minV) / range) * (H - PAD.t - PAD.b)
-  const smooth = (pts) => {
-    let d = `M ${pts[0].x} ${pts[0].y}`
-    for (let i = 1; i < pts.length; i++) {
-      const p = pts[i-1], cur = pts[i]
-      d += ` C ${p.x + (cur.x-p.x)/3} ${p.y} ${cur.x - (cur.x-p.x)/3} ${cur.y} ${cur.x} ${cur.y}`
-    }
-    return d
-  }
-  const pts = data.map((d, i) => ({ x: xS(i), y: yS(parseFloat(d.result)) }))
-  const line = smooth(pts)
-  const last = pts[pts.length - 1]
-  const trend = vals[vals.length-1] > vals[0] ? '↑' : vals[vals.length-1] < vals[0] ? '↓' : '→'
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ flex: 1, height: 44 }}>
-        <path d={line} stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={last.x} cy={last.y} r="3" fill="white" stroke={color} strokeWidth="1.5" />
-      </svg>
-      <span style={{ fontSize: 12, color, fontWeight: 500 }}>{trend}</span>
-    </div>
-  )
-}
-
+/* ─── EVOLUÇÃO DE INDICADORES (exames realizados) ────────────────── */
 function IndicadoresSection({ labResults }) {
-  const COLORS = ['#D4A5A5','#8A9E8C','#C9A96E','#9B8FC4','#6BA8D4','#C48E8E']
   const grouped = {}
   for (const r of labResults || []) {
     if (!grouped[r.category]) grouped[r.category] = []
     grouped[r.category].push(r)
   }
-  const cats = Object.keys(grouped).filter(k => grouped[k].length >= 1)
+  const cats = Object.keys(grouped)
   if (!cats.length) return null
+
   return (
     <section style={{ padding: '0 var(--page-pad-x)', marginBottom: 28 }}>
-      <h2 className="section-title" style={{ marginBottom: 16 }}>Evolução de indicadores</h2>
-      {cats.map((cat, idx) => {
-        const items = grouped[cat].sort((a, b) => a.date.localeCompare(b.date))
-        const last = items[items.length - 1]
-        const color = COLORS[idx % COLORS.length]
+      <h2 className="section-title" style={{ marginBottom: 16 }}>Histórico de exames realizados</h2>
+      {cats.map(cat => {
+        const items = grouped[cat].sort((a, b) => b.date.localeCompare(a.date))
         return (
           <div key={cat} className="card" style={{ padding: '14px 16px', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div>
-                <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500, color: 'var(--c-text-900)' }}>{cat}</div>
-                <div style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', marginTop: 2 }}>
-                  {items.length} medição{items.length !== 1 ? 'ões' : ''}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--c-text-900)' }}>
-                  {last?.result}
-                </div>
-                {last?.unit && <div style={{ fontSize: 10, color: 'var(--c-text-300)' }}>{last.unit}</div>}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500, color: 'var(--c-text-900)' }}>{cat}</span>
+              <span style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>
+                {items.length} registro{items.length !== 1 ? 's' : ''}
+              </span>
             </div>
-            <MiniChart data={items} color={color} />
+            {items.map((it, i) => (
+              <div key={i} style={{ padding: '8px 0', borderTop: i > 0 ? '1px solid var(--c-border-light)' : 'none' }}>
+                <div style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)' }}>{formatDate(it.date)}</div>
+                {it.notes && (
+                  <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 13, color: 'var(--c-text-600)', fontStyle: 'italic', marginTop: 3, marginBottom: 0, lineHeight: 1.5 }}>
+                    {it.notes}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         )
       })}
@@ -519,7 +482,7 @@ export default function Evolucao({ userId }) {
       supabase.from('physical_metrics').select('*').eq('user_id', userId).gte('date', d90).order('date'),
       supabase.from('daily_tracking').select('date,water_ml,sleep_hours,protein_g,strength_done,aerobic_done,skincare_am,skincare_pm').eq('user_id', userId).gte('date', d7).order('date'),
       supabase.from('fitness_settings').select('weight_goal1_kg').eq('user_id', userId).maybeSingle(),
-      supabase.from('lab_results').select('category,date,result,unit,status').eq('user_id', userId).eq('status', 'realizado').not('result', 'is', null).order('date'),
+      supabase.from('lab_results').select('category,date,status,notes').eq('user_id', userId).eq('status', 'realizado').order('date'),
     ])
 
     const latest  = physList?.length ? physList[physList.length - 1] : null
