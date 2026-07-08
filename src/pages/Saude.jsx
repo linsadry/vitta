@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, Plus, X, Check, Stethoscope, Pill, FlaskConical,
          Scale, Moon, Droplets, Heart, ChevronRight, Calendar, CalendarDays, Activity,
-         Pencil, Trash2, MapPin } from 'lucide-react'
+         Pencil, Trash2, MapPin, Archive, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { PageBotanical } from '../components/BotanicalBg'
 import { today, daysAgo, formatDate, formatDateShort, fmtWeight, fmtSleep, fmtWater } from '../lib/utils'
@@ -210,19 +210,38 @@ function ConsultaModal({item, userId, onClose, onSave}) {
   )
 }
 
-// ─── MED MODAL ────────────────────────────────────────────────────
-function MedModal({userId, onClose, onSave}) {
-  const [f,setF]=useState({name:'',dose:'',frequency:'',time:'',start_date:today(),notes:'',active:true,tipo:'continuo'})
+// ─── MED MODAL (criar/editar) ──────────────────────────────────────
+function MedModal({item, userId, onClose, onSave}) {
+  const isNew = !item?.id
+  const [f,setF]=useState({
+    name: item?.name||'',
+    dose: item?.dose||'',
+    frequency: item?.frequency||'',
+    time: item?.time||'',
+    start_date: item?.start_date||today(),
+    notes: item?.notes||'',
+    active: item?.active ?? true,
+    tipo: item?.tipo||'continuo',
+  })
   const [saving,setSaving]=useState(false)
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
-  const save=async()=>{if(!f.name)return;setSaving(true);await supabase.from('health_medications').insert({user_id:userId,...f});onSave?.();onClose()}
+  const save=async()=>{
+    if(!f.name) return
+    setSaving(true)
+    if (isNew) {
+      await supabase.from('health_medications').insert({user_id:userId,...f})
+    } else {
+      await supabase.from('health_medications').update(f).eq('id', item.id)
+    }
+    onSave?.(); onClose()
+  }
   const isEventual=f.tipo==='eventual'
   return (
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
         <div className="sheet-handle"/>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-          <h2 className="sheet-title" style={{marginBottom:0}}>Novo medicamento</h2>
+          <h2 className="sheet-title" style={{marginBottom:0}}>{isNew?'Novo medicamento':'Editar medicamento'}</h2>
           <button onClick={onClose} className="btn-ghost" style={{padding:8}}><X size={18} strokeWidth={1.8}/></button>
         </div>
         <div style={{marginBottom:16}}>
@@ -252,7 +271,8 @@ function MedModal({userId, onClose, onSave}) {
           <div style={{marginBottom:12}}><label className="input-label">Indicação</label><input className="input-field" placeholder="Ex: Crise alérgica, falta de ar" value={f.frequency} onChange={e=>set('frequency',e.target.value)}/></div>
         )}
         <div style={{marginBottom:12}}><label className="input-label">Início</label><input className="input-field" type="date" value={f.start_date} onChange={e=>set('start_date',e.target.value)}/></div>
-        <button className="btn-primary" onClick={save} disabled={saving||!f.name} style={{marginTop:8}}>{saving?'Salvando...':'Salvar'}</button>
+        <div style={{marginBottom:12}}><label className="input-label">Observações</label><textarea className="input-field" rows={2} value={f.notes} onChange={e=>set('notes',e.target.value)} style={{resize:'none'}} placeholder="Opcional"/></div>
+        <button className="btn-primary" onClick={save} disabled={saving||!f.name} style={{marginTop:8}}>{saving?'Salvando...':isNew?'Salvar':'Salvar alterações'}</button>
       </div>
     </div>
   )
@@ -402,15 +422,18 @@ function ConsultasView({userId, consultas, onBack, onReload}) {
 // ─── MEDICAMENTOS VIEW ────────────────────────────────────────────
 function MedicamentosView({userId, meds, onBack, onReload}) {
   const [modal,setModal]=useState(false)
-  const [logs,setLogs]=useState([])
+  const [editing,setEditing]=useState(null)
+  const [logs,setLogs]=useState({taken:[],skipped:[]})
   const [usoModal,setUsoModal]=useState(null)
   const [usosRecentes,setUsosRecentes]=useState({})
   const todayStr=today()
 
   const loadLogs=useCallback(async()=>{
     if(!userId) return
-    const {data}=await supabase.from('vitta_med_logs').select('medication_id').eq('user_id',userId).eq('date',todayStr)
-    setLogs((data||[]).map(l=>l.medication_id))
+    const {data}=await supabase.from('vitta_med_logs').select('medication_id,taken').eq('user_id',userId).eq('date',todayStr)
+    const taken=(data||[]).filter(l=>l.taken!==false).map(l=>l.medication_id)
+    const skipped=(data||[]).filter(l=>l.taken===false).map(l=>l.medication_id)
+    setLogs({taken,skipped})
     const {data:usos}=await supabase.from('vitta_med_uso_eventual').select('medication_id,used_at').eq('user_id',userId).gte('date',daysAgo(30))
     const counts={}
     for(const u of usos||[]){counts[u.medication_id]=(counts[u.medication_id]||0)+1}
@@ -421,10 +444,30 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
 
   useEffect(()=>{loadLogs()},[loadLogs])
 
-  const toggleTaken=async(medId)=>{
-    const taken=logs.includes(medId)
-    if(taken){await supabase.from('vitta_med_logs').delete().eq('user_id',userId).eq('medication_id',medId).eq('date',todayStr);setLogs(p=>p.filter(id=>id!==medId))}
-    else{await supabase.from('vitta_med_logs').upsert({user_id:userId,medication_id:medId,date:todayStr,taken:true},{onConflict:'user_id,medication_id,date'});setLogs(p=>[...p,medId])}
+  const markTaken = async (medId) => {
+    if (logs.taken.includes(medId)) {
+      await supabase.from('vitta_med_logs').delete().eq('user_id',userId).eq('medication_id',medId).eq('date',todayStr)
+    } else {
+      await supabase.from('vitta_med_logs').upsert({user_id:userId,medication_id:medId,date:todayStr,taken:true},{onConflict:'user_id,medication_id,date'})
+    }
+    loadLogs()
+  }
+  const markSkipped = async (medId) => {
+    if (logs.skipped.includes(medId)) {
+      await supabase.from('vitta_med_logs').delete().eq('user_id',userId).eq('medication_id',medId).eq('date',todayStr)
+    } else {
+      await supabase.from('vitta_med_logs').upsert({user_id:userId,medication_id:medId,date:todayStr,taken:false},{onConflict:'user_id,medication_id,date'})
+    }
+    loadLogs()
+  }
+  const encerrarUso = async (m) => {
+    if (!window.confirm(`Encerrar o uso de "${m.name}"? Ele vai para o histórico.`)) return
+    await supabase.from('health_medications').update({active:false,end_date:todayStr}).eq('id',m.id)
+    onReload()
+  }
+  const reativar = async (m) => {
+    await supabase.from('health_medications').update({active:true,end_date:null}).eq('id',m.id)
+    onReload()
   }
 
   const active=meds.filter(m=>m.active&&m.tipo!=='eventual')
@@ -441,6 +484,11 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
     if(diff===1) return `Ontem às ${hora}`
     return `${formatDate(d.toISOString().split('T')[0])}`
   }
+
+  const microBtn = (bg, color) => ({
+    display:'flex',alignItems:'center',gap:5,padding:'6px 10px',borderRadius:'var(--r-full)',
+    border:'none',cursor:'pointer',background:bg,color,fontFamily:'var(--font-ui)',fontSize:11,fontWeight:500,
+  })
 
   return (
     <div>
@@ -460,19 +508,34 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
             <div className="section-header"><h2 className="section-title" style={{fontSize:15}}>Uso contínuo</h2></div>
             <div className="card" style={{padding:'0 16px'}}>
               {active.map((m,i)=>{
-                const taken=logs.includes(m.id)
+                const isTaken=logs.taken.includes(m.id)
+                const isSkipped=logs.skipped.includes(m.id)
                 return(
-                  <div key={m.id} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 0',borderBottom:i<active.length-1?'1px solid var(--c-border-light)':'none'}}>
-                    <div style={{width:36,height:36,borderRadius:10,background:'var(--c-lavender-faint)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <Pill size={16} strokeWidth={1.8} style={{color:'var(--c-lavender)'}}/>
+                  <div key={m.id} style={{padding:'14px 0',borderBottom:i<active.length-1?'1px solid var(--c-border-light)':'none'}}>
+                    <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:'var(--c-lavender-faint)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <Pill size={16} strokeWidth={1.8} style={{color:'var(--c-lavender)'}}/>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)'}}>{m.name}</div>
+                        <div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{[m.dose,m.frequency,m.time].filter(Boolean).join(' · ')}</div>
+                        {m.notes && <div style={{fontSize:11,color:'var(--c-text-400)',fontStyle:'italic',marginTop:3}}>{m.notes}</div>}
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+                          <button onClick={()=>markTaken(m.id)} style={microBtn(isTaken?'var(--c-sage-faint)':'var(--c-base-2)', isTaken?'var(--c-sage-deep)':'var(--c-text-400)')}>
+                            {isTaken&&<Check size={11} strokeWidth={2.5}/>}Tomei hoje
+                          </button>
+                          <button onClick={()=>markSkipped(m.id)} style={microBtn(isSkipped?'rgba(212,165,165,0.22)':'var(--c-base-2)', isSkipped?'var(--c-rose-mid)':'var(--c-text-400)')}>
+                            {isSkipped&&<X size={11} strokeWidth={2.5}/>}Não vou tomar
+                          </button>
+                          <button onClick={()=>setEditing(m)} style={microBtn('var(--c-base-2)','var(--c-text-500)')}>
+                            <Pencil size={11} strokeWidth={1.8}/>Editar
+                          </button>
+                          <button onClick={()=>encerrarUso(m)} style={microBtn('rgba(201,169,110,0.15)','var(--c-gold)')}>
+                            <Archive size={11} strokeWidth={1.8}/>Encerrar uso
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)'}}>{m.name}</div>
-                      <div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{[m.dose,m.frequency,m.time].filter(Boolean).join(' · ')}</div>
-                    </div>
-                    <button onClick={()=>toggleTaken(m.id)} style={{padding:'6px 12px',borderRadius:'var(--r-full)',border:'none',cursor:'pointer',background:taken?'var(--c-sage-faint)':'var(--c-base-2)',color:taken?'var(--c-sage-deep)':'var(--c-text-400)',fontFamily:'var(--font-ui)',fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:5,flexShrink:0}}>
-                      {taken&&<Check size={11} strokeWidth={2.5}/>}{taken?'Tomado':'Marcar'}
-                    </button>
                   </div>
                 )
               })}
@@ -488,18 +551,28 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
                 const count=usosRecentes.counts?.[m.id]||0
                 const ultimo=fmtUltimoUso(usosRecentes.last?.[m.id])
                 return(
-                  <div key={m.id} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 0',borderBottom:i<eventual.length-1?'1px solid var(--c-border-light)':'none'}}>
-                    <div style={{width:36,height:36,borderRadius:10,background:'rgba(201,169,110,0.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <Pill size={16} strokeWidth={1.8} style={{color:'var(--c-gold)'}}/>
+                  <div key={m.id} style={{padding:'14px 0',borderBottom:i<eventual.length-1?'1px solid var(--c-border-light)':'none'}}>
+                    <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:'rgba(201,169,110,0.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <Pill size={16} strokeWidth={1.8} style={{color:'var(--c-gold)'}}/>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)'}}>{m.name}</div>
+                        <div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{[m.dose,m.frequency].filter(Boolean).join(' · ')}</div>
+                        {ultimo&&<div style={{fontSize:11,color:'var(--c-text-400)',marginTop:3}}>Último uso: {ultimo}{count>1?` · ${count}x em 30d`:''}</div>}
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+                          <button onClick={()=>setUsoModal(m)} style={microBtn('var(--c-text-900)','var(--c-base-0)')}>
+                            <Plus size={11} strokeWidth={2.5}/>Registrar uso
+                          </button>
+                          <button onClick={()=>setEditing(m)} style={microBtn('var(--c-base-2)','var(--c-text-500)')}>
+                            <Pencil size={11} strokeWidth={1.8}/>Editar
+                          </button>
+                          <button onClick={()=>encerrarUso(m)} style={microBtn('rgba(201,169,110,0.15)','var(--c-gold)')}>
+                            <Archive size={11} strokeWidth={1.8}/>Encerrar uso
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)'}}>{m.name}</div>
-                      <div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{[m.dose,m.frequency].filter(Boolean).join(' · ')}</div>
-                      {ultimo&&<div style={{fontSize:11,color:'var(--c-text-400)',marginTop:3}}>Último uso: {ultimo}{count>1?` · ${count}x em 30d`:''}</div>}
-                    </div>
-                    <button onClick={()=>setUsoModal(m)} style={{padding:'7px 13px',borderRadius:'var(--r-full)',border:'none',cursor:'pointer',background:'var(--c-text-900)',color:'var(--c-base-0)',fontFamily:'var(--font-ui)',fontSize:11,fontWeight:500,display:'flex',alignItems:'center',gap:5,flexShrink:0}}>
-                      <Plus size={11} strokeWidth={2.5}/>Registrar uso
-                    </button>
                   </div>
                 )
               })}
@@ -512,9 +585,22 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
             <div className="section-header"><h2 className="section-title" style={{fontSize:15,color:'var(--c-text-300)'}}>Histórico</h2></div>
             <div className="card" style={{padding:'0 16px'}}>
               {inactive.map((m,i)=>(
-                <div key={m.id} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:i<inactive.length-1?'1px solid var(--c-border-light)':'none',opacity:0.6}}>
-                  <Pill size={16} strokeWidth={1.5} style={{color:'var(--c-text-300)'}}/>
-                  <div style={{flex:1}}><div style={{fontFamily:'var(--font-ui)',fontSize:13,color:'var(--c-text-500)'}}>{m.name}</div><div style={{fontSize:11,color:'var(--c-text-300)'}}>{[m.dose,m.frequency].filter(Boolean).join(' · ')}</div></div>
+                <div key={m.id} style={{padding:'12px 0',borderBottom:i<inactive.length-1?'1px solid var(--c-border-light)':'none',opacity:0.75}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+                    <Pill size={16} strokeWidth={1.5} style={{color:'var(--c-text-300)',marginTop:2}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:'var(--font-ui)',fontSize:13,color:'var(--c-text-500)'}}>{m.name}</div>
+                      <div style={{fontSize:11,color:'var(--c-text-300)'}}>{[m.dose,m.frequency].filter(Boolean).join(' · ')}{m.end_date?` · encerrado em ${formatDateShort(m.end_date)}`:''}</div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
+                        <button onClick={()=>setEditing(m)} style={microBtn('var(--c-base-2)','var(--c-text-500)')}>
+                          <Pencil size={11} strokeWidth={1.8}/>Editar
+                        </button>
+                        <button onClick={()=>reativar(m)} style={microBtn('var(--c-sage-faint)','var(--c-sage-deep)')}>
+                          <RotateCcw size={11} strokeWidth={1.8}/>Reativar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -523,6 +609,7 @@ function MedicamentosView({userId, meds, onBack, onReload}) {
         {meds.length===0&&<div className="empty-state"><Pill size={32} style={{color:'var(--c-text-100)'}}/><p className="empty-state-text">Nenhum medicamento</p></div>}
       </div>
       {modal&&<MedModal userId={userId} onClose={()=>setModal(false)} onSave={()=>{setModal(false);onReload()}}/>}
+      {editing&&<MedModal item={editing} userId={userId} onClose={()=>setEditing(null)} onSave={()=>{setEditing(null);onReload()}}/>}
       {usoModal&&<UsoEventualModal med={usoModal} userId={userId} onClose={()=>setUsoModal(null)} onSave={()=>{setUsoModal(null);loadLogs()}}/>}
     </div>
   )
