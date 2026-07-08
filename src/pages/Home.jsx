@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Scale, Droplets, Moon, Dumbbell, UtensilsCrossed, BookOpen,
-  FlaskConical, CalendarDays, X, Check, ChevronRight, ChevronLeft, Heart, Activity, Settings
+  FlaskConical, Stethoscope, CalendarDays, X, Check, ChevronRight, ChevronLeft, Heart, Activity, Settings
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { HomeHeaderBotanical } from '../components/BotanicalBg'
@@ -72,6 +72,7 @@ function useHomeData(userId) {
       {data:nextConsult},{data:nextExam},{data:fivStages},
       {data:todayWk},{data:todayNutrition},{data:todayDiary},
       {data:cycleEntries},{data:upConsults},{data:pastConsults},{data:profile},
+      {data:upExams},
     ] = await Promise.all([
       supabase.from('daily_tracking').select('*').eq('user_id',userId).gte('date',daysAgo(120)).order('date',{ascending:false}),
       supabase.from('physical_metrics').select('weight,date').eq('user_id',userId).order('date',{ascending:false}).limit(2),
@@ -86,6 +87,7 @@ function useHomeData(userId) {
       supabase.from('health_consultations').select('*').eq('user_id',userId).gte('date',todayStr).order('date').limit(4),
       supabase.from('health_consultations').select('date').eq('user_id',userId).gte('date',d35).lt('date',todayStr).order('date'),
       supabase.from('vitta_profile').select('*').eq('user_id',userId).maybeSingle(),
+      supabase.from('lab_results').select('id,category,scheduled_date,location').eq('user_id',userId).eq('status','agendado').gte('scheduled_date',todayStr).order('scheduled_date').limit(4),
     ])
 
     const todayTracking=(tracking||[]).find(d=>d.date===todayStr)
@@ -119,6 +121,7 @@ function useHomeData(userId) {
       skincare_pm:!!todayTracking?.skincare_pm,
       cycle, cycleByDate, consultDateSet,
       upConsults:upConsults||[],
+      upExams:upExams||[],
       profile: profile||{},
       displayName: profile?.display_name||'Adriana',
     })
@@ -380,15 +383,16 @@ function PendenciasHoje({ data, onAction }) {
       {done.map((item,idx)=>{
         const {icon:Icon}=item
         return (
-          <div key={item.id} style={{
+          <div key={item.id} onClick={()=>onAction(item.id)} style={{
             display:'flex',alignItems:'center',gap:14,padding:'10px 0',
             borderBottom:idx<done.length-1?'1px solid var(--c-border-light)':'none',
-            opacity:0.45,
+            opacity:0.55, cursor:'pointer',
           }}>
             <div style={{width:34,height:34,borderRadius:9,background:'var(--c-sage-faint)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
               <Check size={14} strokeWidth={2.5} style={{color:'var(--c-sage)'}}/>
             </div>
             <span style={{flex:1,fontFamily:'var(--font-ui)',fontSize:13,color:'var(--c-text-500)',textDecoration:'line-through'}}>{item.label}</span>
+            <span style={{fontSize:11,color:'var(--c-text-300)',fontFamily:'var(--font-ui)'}}>editar</span>
           </div>
         )
       })}
@@ -904,7 +908,11 @@ useEffect(() => {
 }, [location.state, data])
   
   const today_=today()
-  const upcomingEvents = data?.upConsults?.map(c=>({date:c.date,type:'consultation',title:c.specialty||'Consulta',subtitle:c.doctor||c.location})) || []
+  const upcomingEvents = [
+    ...(data?.upConsults||[]).map(c=>({date:c.date,type:'consultation',title:c.specialty||'Consulta',subtitle:c.doctor||c.location})),
+    ...(data?.upExams||[]).map(e=>({date:e.scheduled_date,type:'exam',title:e.category,subtitle:e.location})),
+  ].sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6)
+
   return (
     <div style={{paddingBottom:8}}>
 
@@ -998,6 +1006,10 @@ useEffect(() => {
                   <div style={{fontSize:10,color:'var(--c-text-300)',textTransform:'uppercase',letterSpacing:'.04em'}}>{new Date(ev.date+'T12:00:00').toLocaleDateString('pt-BR',{month:'short'})}</div>
                 </div>
                 <div style={{width:3,height:36,borderRadius:2,background:ev.date>=today_?'var(--c-rose)':'var(--c-base-3)',flexShrink:0}}/>
+                {ev.type==='exam'
+                  ? <FlaskConical size={14} strokeWidth={1.8} style={{color:'var(--c-sage)',flexShrink:0}}/>
+                  : <Stethoscope size={14} strokeWidth={1.8} style={{color:'var(--c-rose)',flexShrink:0}}/>
+                }
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontFamily:'var(--font-ui)',fontSize:14,fontWeight:500,color:'var(--c-text-900)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.title}</div>
                   {ev.subtitle&&<div style={{fontSize:12,color:'var(--c-text-500)',marginTop:2}}>{ev.subtitle}</div>}
