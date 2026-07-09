@@ -242,9 +242,182 @@ function DiarioTab({ userId }) {
   )
 }
 
+/* ─── NUTRITION CARD (registros anteriores) ──────────────────────── */
+function NutritionCard({ entry, onClick }) {
+  return (
+    <div className="card" onClick={onClick} style={{ padding: '14px 18px', marginBottom: 10, cursor: onClick ? 'pointer' : 'default' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: entry.kcal || entry.protein_g ? 8 : 0 }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--c-text-300)' }}>{formatDate(entry.date)}</span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {entry.diet_escape && (
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-ui)', color: 'var(--c-rose-mid)', background: 'var(--c-rose)15', padding: '2px 8px', borderRadius: 'var(--r-full)' }}>
+              Escapada
+            </span>
+          )}
+          {entry.alcohol && (
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-ui)', color: 'var(--c-gold)', background: 'rgba(201,169,110,0.15)', padding: '2px 8px', borderRadius: 'var(--r-full)' }}>
+              Álcool
+            </span>
+          )}
+        </div>
+      </div>
+      {(entry.kcal != null || entry.protein_g != null || entry.meals_count != null) && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {entry.kcal != null && <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>{Math.round(entry.kcal)} kcal</span>}
+          {entry.protein_g != null && <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>Prot {Math.round(entry.protein_g)}g</span>}
+          {entry.carbs_g != null && <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>Carb {Math.round(entry.carbs_g)}g</span>}
+          {entry.fat_g != null && <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>Gord {Math.round(entry.fat_g)}g</span>}
+          {entry.meals_count != null && <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>{entry.meals_count} refeições</span>}
+        </div>
+      )}
+      {(entry.diet_escape_note || entry.alcohol_note) && (
+        <div style={{ borderLeft: '2px solid var(--c-gold-light)', paddingLeft: 10, marginTop: 8 }}>
+          {entry.diet_escape_note && (
+            <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 13, color: 'var(--c-text-500)', fontStyle: 'italic', lineHeight: 1.5, margin: 0 }}>
+              {entry.diet_escape_note}
+            </p>
+          )}
+          {entry.alcohol_note && (
+            <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 13, color: 'var(--c-text-500)', fontStyle: 'italic', lineHeight: 1.5, margin: 0 }}>
+              {entry.alcohol_note}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── EDIT PAST NUTRITION ENTRY MODAL ────────────────────────────── */
+function NutritionEntryModal({ entry, userId, onClose, onSave }) {
+  const [kcal, setKcal]               = useState(entry.kcal != null ? String(entry.kcal) : '')
+  const [protein, setProtein]         = useState(entry.protein_g != null ? String(entry.protein_g) : '')
+  const [carbs, setCarbs]             = useState(entry.carbs_g != null ? String(entry.carbs_g) : '')
+  const [fat, setFat]                 = useState(entry.fat_g != null ? String(entry.fat_g) : '')
+  const [mealsCount, setMealsCount]   = useState(entry.meals_count != null ? String(entry.meals_count) : '')
+  const [dietEscape, setDietEscape]         = useState(!!entry.diet_escape)
+  const [dietEscapeNote, setDietEscapeNote] = useState(entry.diet_escape_note || '')
+  const [alcohol, setAlcohol]         = useState(!!entry.alcohol)
+  const [alcoholNote, setAlcoholNote] = useState(entry.alcohol_note || '')
+  const [saving, setSaving]           = useState(false)
+
+  const toN = (v) => v ? parseFloat(String(v).replace(',', '.')) || null : null
+  const toI = (v) => v ? parseInt(v, 10) || null : null
+
+  const save = async () => {
+    setSaving(true)
+    const proteinVal = toN(protein)
+    await supabase.from('nutrition_days').update({
+      kcal: toN(kcal), protein_g: proteinVal, carbs_g: toN(carbs), fat_g: toN(fat),
+      meals_count: toI(mealsCount),
+      diet_escape: dietEscape, diet_escape_note: dietEscape ? (dietEscapeNote || null) : null,
+      alcohol: alcohol, alcohol_note: alcohol ? (alcoholNote || null) : null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', entry.id)
+
+    // Sincroniza proteína com daily_tracking também nos registros passados
+    const { data: dt } = await supabase.from('daily_tracking').select('id').eq('user_id', userId).eq('date', entry.date).maybeSingle()
+    if (dt) await supabase.from('daily_tracking').update({ protein_g: proteinVal }).eq('id', dt.id)
+    else if (proteinVal) await supabase.from('daily_tracking').insert({ user_id: userId, date: entry.date, protein_g: proteinVal })
+
+    onSave?.(); onClose()
+  }
+
+  const remove = async () => {
+    if (!window.confirm('Excluir este registro de alimentação?')) return
+    setSaving(true)
+    await supabase.from('nutrition_days').delete().eq('id', entry.id)
+    onSave?.(); onClose()
+  }
+
+  const ToggleRow = ({ label, active, onToggle }) => (
+    <button onClick={onToggle} style={{
+      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+      border: `1px solid ${active ? 'var(--c-rose)' : 'var(--c-border)'}`,
+      background: active ? 'var(--c-rose)11' : 'transparent',
+    }}>
+      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--c-text-700)' }}>{label}</span>
+      <span style={{
+        width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${active ? 'var(--c-rose)' : 'var(--c-text-100)'}`,
+        background: active ? 'var(--c-rose)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        {active && <Check size={12} color="#fff" strokeWidth={2.5} />}
+      </span>
+    </button>
+  )
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 className="sheet-title" style={{ marginBottom: 0 }}>{formatDate(entry.date)}</h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding: 8 }}><X size={18} strokeWidth={1.8} /></button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {[
+            { label: 'Calorias (kcal)', state: kcal, set: setKcal },
+            { label: 'Proteína (g)', state: protein, set: setProtein },
+            { label: 'Carboidratos (g)', state: carbs, set: setCarbs },
+            { label: 'Gordura (g)', state: fat, set: setFat },
+          ].map(f => (
+            <div key={f.label}>
+              <label className="input-label">{f.label}</label>
+              <input className="input-field" type="text" inputMode="decimal" placeholder="0"
+                value={f.state} onChange={e => f.set(e.target.value)} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <label className="input-label">Número de refeições</label>
+          <input className="input-field" type="text" inputMode="numeric" placeholder="Ex: 4"
+            value={mealsCount} onChange={e => setMealsCount(e.target.value.replace(/\D/g, ''))} />
+        </div>
+
+        <div style={{ marginBottom: dietEscape ? 10 : 14 }}>
+          <ToggleRow label="Teve escapada da dieta?" active={dietEscape} onToggle={() => setDietEscape(v => !v)} />
+        </div>
+        {dietEscape && (
+          <div style={{ marginBottom: 16 }}>
+            <input className="input-field" type="text" placeholder="Anotação (opcional)"
+              value={dietEscapeNote} onChange={e => setDietEscapeNote(e.target.value)} />
+          </div>
+        )}
+
+        <div style={{ marginBottom: alcohol ? 10 : 20 }}>
+          <ToggleRow label="Teve ingestão de bebida alcoólica?" active={alcohol} onToggle={() => setAlcohol(v => !v)} />
+        </div>
+        {alcohol && (
+          <div style={{ marginBottom: 20 }}>
+            <input className="input-field" type="text" placeholder="Anotação (opcional)"
+              value={alcoholNote} onChange={e => setAlcoholNote(e.target.value)} />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={remove} disabled={saving} style={{
+            flex: 1, padding: '13px 0', borderRadius: 'var(--r-full)',
+            border: '1.5px solid var(--c-rose-mid)', background: 'none',
+            color: 'var(--c-rose-mid)', fontFamily: 'var(--font-ui)', fontSize: 14, cursor: 'pointer',
+          }}>Excluir</button>
+          <button className="btn-primary" onClick={save} disabled={saving} style={{ flex: 2 }}>
+            {saving ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─── ALIMENTACAO TAB (simplificado) ─────────────────────────────── */
 function AlimentacaoTab({ userId }) {
   const [entry, setEntry]             = useState(null)
+  const [pastEntries, setPastEntries] = useState([])
+  const [editingEntry, setEditingEntry] = useState(null)
   const [kcal, setKcal]               = useState('')
   const [protein, setProtein]         = useState('')
   const [carbs, setCarbs]             = useState('')
@@ -261,18 +434,22 @@ function AlimentacaoTab({ userId }) {
   const load = useCallback(async () => {
     if (!userId) return
     const { data } = await supabase.from('nutrition_days')
-      .select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle()
-    if (data) {
-      setEntry(data)
-      setKcal(data.kcal != null ? String(data.kcal) : '')
-      setProtein(data.protein_g != null ? String(data.protein_g) : '')
-      setCarbs(data.carbs_g != null ? String(data.carbs_g) : '')
-      setFat(data.fat_g != null ? String(data.fat_g) : '')
-      setMealsCount(data.meals_count != null ? String(data.meals_count) : '')
-      setDietEscape(!!data.diet_escape)
-      setDietEscapeNote(data.diet_escape_note || '')
-      setAlcohol(!!data.alcohol)
-      setAlcoholNote(data.alcohol_note || '')
+      .select('*').eq('user_id', userId)
+      .order('date', { ascending: false }).limit(30)
+    const list = data || []
+    const todayE = list.find(e => e.date === todayStr)
+    setPastEntries(list.filter(e => e.date !== todayStr))
+    if (todayE) {
+      setEntry(todayE)
+      setKcal(todayE.kcal != null ? String(todayE.kcal) : '')
+      setProtein(todayE.protein_g != null ? String(todayE.protein_g) : '')
+      setCarbs(todayE.carbs_g != null ? String(todayE.carbs_g) : '')
+      setFat(todayE.fat_g != null ? String(todayE.fat_g) : '')
+      setMealsCount(todayE.meals_count != null ? String(todayE.meals_count) : '')
+      setDietEscape(!!todayE.diet_escape)
+      setDietEscapeNote(todayE.diet_escape_note || '')
+      setAlcohol(!!todayE.alcohol)
+      setAlcoholNote(todayE.alcohol_note || '')
     } else {
       setEntry(null)
       setKcal(''); setProtein(''); setCarbs(''); setFat('')
@@ -392,6 +569,23 @@ function AlimentacaoTab({ userId }) {
           {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
         </button>
       </div>
+
+      {/* Registros anteriores */}
+      {pastEntries.length > 0 && (
+        <div>
+          <h3 className="section-title" style={{ marginBottom: 12, fontSize: 15 }}>Registros anteriores</h3>
+          <p style={{ fontSize: 11, color: 'var(--c-text-300)', fontFamily: 'var(--font-ui)', fontStyle: 'italic', marginBottom: 10 }}>
+            Toque num registro para editar
+          </p>
+          {pastEntries.map(e => (
+            <NutritionCard key={e.id} entry={e} onClick={() => setEditingEntry(e)} />
+          ))}
+        </div>
+      )}
+
+      {editingEntry && (
+        <NutritionEntryModal entry={editingEntry} userId={userId} onClose={() => setEditingEntry(null)} onSave={load} />
+      )}
     </div>
   )
 }
